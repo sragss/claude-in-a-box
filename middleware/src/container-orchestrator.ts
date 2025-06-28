@@ -2,8 +2,12 @@ import Docker from 'dockerode';
 import { execSync } from 'child_process';
 import { mkdirSync, writeFileSync, rmSync } from 'fs';
 import path from 'path';
+import type { Session, CreateSessionOptions, PostSpinupCommand } from './types';
 
 export class ContainerOrchestrator {
+  private docker: Docker;
+  private baseImages: { dev: string; wetty: string };
+
   constructor() {
     this.docker = new Docker();
     this.baseImages = {
@@ -12,14 +16,14 @@ export class ContainerOrchestrator {
     };
   }
 
-  async createSession(sessionId, options = {}) {
+  async createSession(sessionId: string, options: CreateSessionOptions = {}): Promise<Session> {
     const { postSpinupCommands = [] } = options;
     
     // Extract cloned repo directory from git_clone commands
     const gitCloneCmd = postSpinupCommands.find(cmd => cmd.type === 'git_clone');
-    const startupDirectory = gitCloneCmd ? gitCloneCmd.directory : '/home/node';
+    const startupDirectory = gitCloneCmd ? gitCloneCmd.directory! : '/home/node';
     
-    const session = {
+    const session: Session = {
       sessionId,
       network: `claude-${sessionId}`,
       devContainer: `claude-dev-${sessionId}`,
@@ -55,7 +59,7 @@ export class ContainerOrchestrator {
     }
   }
 
-  async generateSSHKeys(session) {
+  private async generateSSHKeys(session: Session): Promise<void> {
     console.log(`🔑 Generating SSH keys for session ${session.sessionId}`);
     
     // Create session directory
@@ -75,7 +79,7 @@ export class ContainerOrchestrator {
     console.log(`✅ SSH keys generated at ${session.sshKeysPath}`);
   }
 
-  async createNetwork(session) {
+  private async createNetwork(session: Session): Promise<void> {
     console.log(`🌐 Creating network ${session.network}`);
     
     try {
@@ -84,7 +88,7 @@ export class ContainerOrchestrator {
         Driver: 'bridge'
       });
       console.log(`✅ Network ${session.network} created`);
-    } catch (error) {
+    } catch (error: any) {
       if (error.statusCode === 409) {
         console.log(`⚠️  Network ${session.network} already exists`);
       } else {
@@ -93,11 +97,11 @@ export class ContainerOrchestrator {
     }
   }
 
-  async startDevContainer(session) {
+  private async startDevContainer(session: Session): Promise<void> {
     console.log(`🛠️  Starting dev container ${session.devContainer}`);
     
     // Build environment variables
-    const env = [];
+    const env: string[] = [];
     if (session.postSpinupCommands.length > 0) {
       env.push('POST_SPINUP_COMMANDS_ENABLED=true');
     }
@@ -119,12 +123,12 @@ export class ContainerOrchestrator {
     
     // Get assigned port
     const containerInfo = await container.inspect();
-    session.devPort = containerInfo.NetworkSettings.Ports['22/tcp'][0].HostPort;
+    session.devPort = parseInt(containerInfo.NetworkSettings.Ports['22/tcp'][0].HostPort);
     
     console.log(`✅ Dev container ${session.devContainer} started on port ${session.devPort}`);
   }
 
-  async startWettyContainer(session) {
+  private async startWettyContainer(session: Session): Promise<void> {
     console.log(`🖥️  Starting Wetty container ${session.wettyContainer}`);
     
     const container = await this.docker.createContainer({
@@ -148,12 +152,12 @@ export class ContainerOrchestrator {
     
     // Get assigned port
     const containerInfo = await container.inspect();
-    session.wettyPort = containerInfo.NetworkSettings.Ports['3001/tcp'][0].HostPort;
+    session.wettyPort = parseInt(containerInfo.NetworkSettings.Ports['3001/tcp'][0].HostPort);
     
     console.log(`✅ Wetty container ${session.wettyContainer} started on port ${session.wettyPort}`);
   }
 
-  async waitForContainers(session) {
+  private async waitForContainers(session: Session): Promise<void> {
     console.log(`⏳ Waiting for containers to be ready...`);
     
     // Simple wait - in production you'd want proper health checks
@@ -162,7 +166,7 @@ export class ContainerOrchestrator {
     console.log(`✅ Session ${session.sessionId} is ready`);
   }
 
-  async cleanupSession(session) {
+  async cleanupSession(session: Session): Promise<void> {
     console.log(`🧹 Cleaning up session ${session.sessionId}`);
     
     try {
@@ -177,25 +181,25 @@ export class ContainerOrchestrator {
       if (session.sshKeysPath) {
         try {
           rmSync(path.dirname(session.sshKeysPath), { recursive: true, force: true });
-        } catch (error) {
+        } catch (error: any) {
           console.warn(`⚠️  Failed to cleanup SSH keys: ${error.message}`);
         }
       }
       
       console.log(`✅ Session ${session.sessionId} cleaned up`);
-    } catch (error) {
+    } catch (error: any) {
       console.error(`❌ Error during cleanup: ${error.message}`);
     }
   }
 
-  async stopAndRemoveContainer(containerName) {
+  private async stopAndRemoveContainer(containerName: string): Promise<void> {
     try {
       const container = this.docker.getContainer(containerName);
       
       // Stop container
       try {
         await container.stop({ t: 10 });
-      } catch (error) {
+      } catch (error: any) {
         if (error.statusCode !== 304) { // 304 = already stopped
           console.warn(`⚠️  Failed to stop ${containerName}: ${error.message}`);
         }
@@ -204,33 +208,33 @@ export class ContainerOrchestrator {
       // Remove container
       await container.remove();
       console.log(`✅ Container ${containerName} removed`);
-    } catch (error) {
+    } catch (error: any) {
       if (error.statusCode !== 404) { // 404 = container not found
         console.warn(`⚠️  Failed to remove ${containerName}: ${error.message}`);
       }
     }
   }
 
-  async removeNetwork(networkName) {
+  private async removeNetwork(networkName: string): Promise<void> {
     try {
       const network = this.docker.getNetwork(networkName);
       await network.remove();
       console.log(`✅ Network ${networkName} removed`);
-    } catch (error) {
+    } catch (error: any) {
       if (error.statusCode !== 404) { // 404 = network not found
         console.warn(`⚠️  Failed to remove network ${networkName}: ${error.message}`);
       }
     }
   }
 
-  async cleanupAll() {
+  async cleanupAll(): Promise<void> {
     console.log('🧹 Cleaning up all Claude sessions...');
     
     try {
       // Find all Claude containers
       const containers = await this.docker.listContainers({ all: true });
-      const claudeContainers = containers.filter(container => 
-        container.Names.some(name => name.includes('claude-dev-') || name.includes('claude-wetty-'))
+      const claudeContainers = containers.filter((container: any) => 
+        container.Names.some((name: string) => name.includes('claude-dev-') || name.includes('claude-wetty-'))
       );
 
       // Remove Claude containers
@@ -240,7 +244,7 @@ export class ContainerOrchestrator {
 
       // Find and remove Claude networks
       const networks = await this.docker.listNetworks();
-      const claudeNetworks = networks.filter(network => network.Name.startsWith('claude-'));
+      const claudeNetworks = networks.filter((network: any) => network.Name.startsWith('claude-'));
       
       for (const networkInfo of claudeNetworks) {
         await this.removeNetwork(networkInfo.Name);
@@ -249,7 +253,7 @@ export class ContainerOrchestrator {
       // Clean up session files
       try {
         rmSync(path.join(process.cwd(), 'sessions'), { recursive: true, force: true });
-      } catch (error) {
+      } catch (error: any) {
         console.warn(`⚠️  Failed to cleanup session files: ${error.message}`);
       }
 

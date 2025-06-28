@@ -1,11 +1,17 @@
+import type { Session, SessionStats } from './types';
+
 export class SessionManager {
+  private sessions: Map<string, Session>;
+  private sessionTimeouts: Map<string, NodeJS.Timeout>;
+  private readonly SESSION_TIMEOUT: number;
+
   constructor() {
     this.sessions = new Map();
     this.sessionTimeouts = new Map();
     this.SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
   }
 
-  addSession(sessionId, session) {
+  addSession(sessionId: string, session: Session): void {
     this.sessions.set(sessionId, {
       ...session,
       createdAt: new Date(),
@@ -18,7 +24,7 @@ export class SessionManager {
     console.log(`📝 Session ${sessionId} added to manager`);
   }
 
-  getSession(sessionId) {
+  getSession(sessionId: string): Session | undefined {
     const session = this.sessions.get(sessionId);
     
     if (session) {
@@ -32,7 +38,7 @@ export class SessionManager {
     return session;
   }
 
-  removeSession(sessionId) {
+  removeSession(sessionId: string): void {
     this.sessions.delete(sessionId);
     
     // Clear timeout
@@ -45,18 +51,15 @@ export class SessionManager {
     console.log(`🗑️  Session ${sessionId} removed from manager`);
   }
 
-  getAllSessions() {
-    return Array.from(this.sessions.entries()).map(([sessionId, session]) => ({
-      sessionId,
-      ...session
-    }));
+  getAllSessions(): Session[] {
+    return Array.from(this.sessions.values());
   }
 
-  getActiveSessionCount() {
+  getActiveSessionCount(): number {
     return this.sessions.size;
   }
 
-  setSessionTimeout(sessionId) {
+  private setSessionTimeout(sessionId: string): void {
     // Clear existing timeout
     const existingTimeout = this.sessionTimeouts.get(sessionId);
     if (existingTimeout) {
@@ -72,7 +75,7 @@ export class SessionManager {
     this.sessionTimeouts.set(sessionId, timeout);
   }
 
-  async handleSessionTimeout(sessionId) {
+  private async handleSessionTimeout(sessionId: string): Promise<void> {
     const session = this.sessions.get(sessionId);
     
     if (session) {
@@ -80,7 +83,7 @@ export class SessionManager {
       
       try {
         // Import container orchestrator dynamically to avoid circular dependency
-        const { ContainerOrchestrator } = await import('./container-orchestrator.js');
+        const { ContainerOrchestrator } = await import('./container-orchestrator');
         const orchestrator = new ContainerOrchestrator();
         
         await orchestrator.cleanupSession(session);
@@ -94,7 +97,7 @@ export class SessionManager {
   }
 
   // Get session statistics
-  getSessionStats() {
+  getSessionStats(): SessionStats {
     const sessions = this.getAllSessions();
     const now = new Date();
     
@@ -102,25 +105,26 @@ export class SessionManager {
       total: sessions.length,
       active: sessions.length,
       averageAge: sessions.length > 0 
-        ? sessions.reduce((sum, session) => sum + (now - session.createdAt), 0) / sessions.length 
+        ? sessions.reduce((sum, session) => sum + (now.getTime() - (session.createdAt?.getTime() || 0)), 0) / sessions.length 
         : 0,
       oldestSession: sessions.length > 0 
-        ? Math.min(...sessions.map(session => now - session.createdAt))
+        ? Math.min(...sessions.map(session => now.getTime() - (session.createdAt?.getTime() || 0)))
         : 0
     };
   }
 
   // Manual cleanup of old sessions
-  async cleanupOldSessions(maxAge = this.SESSION_TIMEOUT) {
+  async cleanupOldSessions(maxAge: number = this.SESSION_TIMEOUT): Promise<number> {
     const now = new Date();
-    const oldSessions = this.getAllSessions().filter(session => 
-      now - session.lastAccessed > maxAge
+    const allSessions = Array.from(this.sessions.entries());
+    const oldSessions = allSessions.filter(([sessionId, session]) => 
+      now.getTime() - (session.lastAccessed?.getTime() || 0) > maxAge
     );
 
     console.log(`🧹 Cleaning up ${oldSessions.length} old sessions`);
 
-    for (const session of oldSessions) {
-      await this.handleSessionTimeout(session.sessionId);
+    for (const [sessionId, session] of oldSessions) {
+      await this.handleSessionTimeout(sessionId);
     }
 
     return oldSessions.length;

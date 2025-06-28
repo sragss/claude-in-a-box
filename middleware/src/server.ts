@@ -1,9 +1,9 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import cors from 'cors';
 import { v4 as uuidv4 } from 'uuid';
-import { createProxyMiddleware } from 'http-proxy-middleware';
-import { ContainerOrchestrator } from './container-orchestrator.js';
-import { SessionManager } from './session-manager.js';
+import { ContainerOrchestrator } from './container-orchestrator';
+import { SessionManager } from './session-manager';
+import type { PostSpinupCommand } from './types';
 
 const app = express();
 const PORT = 8080;
@@ -20,11 +20,12 @@ const sessionManager = new SessionManager();
 const TEST_PASSWORD = 'devpassword';
 
 // Routes
-app.post('/api/auth/login', (req, res) => {
-  const { password } = req.body;
+app.post('/api/auth/login', (req: Request, res: Response): void => {
+  const { password }: { password: string } = req.body;
   
   if (password !== TEST_PASSWORD) {
-    return res.status(401).json({ error: 'Invalid password' });
+    res.status(401).json({ error: 'Invalid password' });
+    return;
   }
   
   // Generate a simple auth token
@@ -36,12 +37,16 @@ app.post('/api/auth/login', (req, res) => {
   });
 });
 
-app.post('/api/session/create', async (req, res) => {
+app.post('/api/session/create', async (req: Request, res: Response): Promise<void> => {
   try {
-    const { token, postSpinupCommands = [] } = req.body;
+    const { token, postSpinupCommands = [] }: { 
+      token: string; 
+      postSpinupCommands?: PostSpinupCommand[] 
+    } = req.body;
     
     if (!token) {
-      return res.status(401).json({ error: 'Authentication token required' });
+      res.status(401).json({ error: 'Authentication token required' });
+      return;
     }
     
     console.log('🚀 Creating new development session...');
@@ -69,7 +74,7 @@ app.post('/api/session/create', async (req, res) => {
       message: 'Development environment created'
     });
     
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Failed to create session:', error);
     res.status(500).json({ 
       error: 'Failed to create development environment',
@@ -78,12 +83,13 @@ app.post('/api/session/create', async (req, res) => {
   }
 });
 
-app.get('/api/session/:sessionId/status', (req, res) => {
+app.get('/api/session/:sessionId/status', (req: Request, res: Response): void => {
   const { sessionId } = req.params;
   const session = sessionManager.getSession(sessionId);
   
   if (!session) {
-    return res.status(404).json({ error: 'Session not found' });
+    res.status(404).json({ error: 'Session not found' });
+    return;
   }
   
   res.json({
@@ -99,13 +105,14 @@ app.get('/api/session/:sessionId/status', (req, res) => {
   });
 });
 
-app.delete('/api/session/:sessionId', async (req, res) => {
+app.delete('/api/session/:sessionId', async (req: Request, res: Response): Promise<void> => {
   try {
     const { sessionId } = req.params;
     const session = sessionManager.getSession(sessionId);
     
     if (!session) {
-      return res.status(404).json({ error: 'Session not found' });
+      res.status(404).json({ error: 'Session not found' });
+      return;
     }
     
     console.log(`🧹 Cleaning up session ${sessionId}...`);
@@ -123,7 +130,7 @@ app.delete('/api/session/:sessionId', async (req, res) => {
       message: 'Session cleaned up successfully' 
     });
     
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Failed to cleanup session:', error);
     res.status(500).json({ 
       error: 'Failed to cleanup session',
@@ -133,12 +140,13 @@ app.delete('/api/session/:sessionId', async (req, res) => {
 });
 
 // Handle terminal access - redirect to direct Wetty URL for now
-app.get('/terminal/:sessionId', (req, res) => {
+app.get('/terminal/:sessionId', (req: Request, res: Response): void => {
   const { sessionId } = req.params;
   const session = sessionManager.getSession(sessionId);
   
   if (!session) {
-    return res.status(404).json({ error: 'Session not found' });
+    res.status(404).json({ error: 'Session not found' });
+    return;
   }
   
   // For now, redirect directly to the Wetty container
@@ -147,7 +155,7 @@ app.get('/terminal/:sessionId', (req, res) => {
 });
 
 // Health check
-app.get('/health', (req, res) => {
+app.get('/health', (req: Request, res: Response): void => {
   res.json({ 
     status: 'healthy', 
     service: 'claude-middleware',
@@ -162,14 +170,11 @@ app.listen(PORT, () => {
 });
 
 // Graceful shutdown
-process.on('SIGTERM', async () => {
+const gracefulShutdown = async (): Promise<void> => {
   console.log('🛑 Shutting down middleware server...');
   await containerOrchestrator.cleanupAll();
   process.exit(0);
-});
+};
 
-process.on('SIGINT', async () => {
-  console.log('🛑 Shutting down middleware server...');
-  await containerOrchestrator.cleanupAll();
-  process.exit(0);
-});
+process.on('SIGTERM', gracefulShutdown);
+process.on('SIGINT', gracefulShutdown);
