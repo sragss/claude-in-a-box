@@ -21,9 +21,10 @@ class ClaudeInABox {
         <div id="auth-section" class="auth-section">
           <div class="auth-card">
             <h2>Authentication</h2>
-            <p>Enter password to access development environments</p>
+            <p>Enter password and optionally specify a GitHub repository to clone</p>
             <div class="auth-form">
               <input type="password" id="password-input" placeholder="Enter password" />
+              <input type="url" id="github-repo-input" placeholder="GitHub repo URL (optional)" />
               <button id="login-btn">Login</button>
             </div>
             <div id="auth-status" class="status-message"></div>
@@ -128,12 +129,38 @@ class ClaudeInABox {
     createBtn.textContent = 'Creating Environment...';
     
     try {
-      this.showStatus('session-status', 'Creating development environment...', 'info');
+      // Collect GitHub repo URL if provided
+      const githubRepoInput = document.getElementById('github-repo-input') as HTMLInputElement;
+      const githubRepo = githubRepoInput?.value?.trim();
+      
+      const statusMessage = githubRepo 
+        ? `Creating development environment and cloning ${githubRepo.split('/').pop()?.replace('.git', '')}...`
+        : 'Creating development environment...';
+      this.showStatus('session-status', statusMessage, 'info');
+      
+      // Build post-spinup commands
+      const postSpinupCommands = [];
+      if (githubRepo) {
+        const repoName = githubRepo.split('/').pop()?.replace('.git', '') || 'repo';
+        postSpinupCommands.push({
+          type: 'git_clone',
+          repo: githubRepo,
+          directory: `/workspace/${repoName}`
+        });
+        postSpinupCommands.push({
+          type: 'shell_command',
+          command: `cd /workspace/${repoName}`,
+          description: 'Change to project directory'
+        });
+      }
 
       const response = await fetch(`${this.middlewareUrl}/api/session/create`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: this.authToken })
+        body: JSON.stringify({ 
+          token: this.authToken,
+          postSpinupCommands
+        })
       });
 
       const result = await response.json();

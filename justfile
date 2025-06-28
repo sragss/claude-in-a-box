@@ -23,7 +23,7 @@ local: clean
 # Start frontend development server
 frontend:
     @echo "🖥️  Starting frontend development server..."
-    @cd test-frontend && bun run dev
+    @cd frontend && bun run dev
 
 # Create Docker network
 network:

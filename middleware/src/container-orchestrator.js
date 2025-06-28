@@ -12,13 +12,16 @@ export class ContainerOrchestrator {
     };
   }
 
-  async createSession(sessionId) {
+  async createSession(sessionId, options = {}) {
+    const { postSpinupCommands = [] } = options;
+    
     const session = {
       sessionId,
       network: `claude-${sessionId}`,
       devContainer: `claude-dev-${sessionId}`,
       wettyContainer: `claude-wetty-${sessionId}`,
       sshKeysPath: path.join(process.cwd(), 'sessions', sessionId, 'ssh-keys'),
+      postSpinupCommands,
       devPort: null,
       wettyPort: null
     };
@@ -57,6 +60,13 @@ export class ContainerOrchestrator {
     const keyPath = path.join(session.sshKeysPath, 'id_rsa');
     execSync(`ssh-keygen -t rsa -b 2048 -f "${keyPath}" -N "" -q`, { stdio: 'pipe' });
     
+    // Generate post-spinup commands file
+    if (session.postSpinupCommands.length > 0) {
+      const commandsPath = path.join(session.sshKeysPath, 'post-spinup-commands.json');
+      writeFileSync(commandsPath, JSON.stringify(session.postSpinupCommands, null, 2));
+      console.log(`📋 Post-spinup commands written to ${commandsPath}`);
+    }
+    
     console.log(`✅ SSH keys generated at ${session.sshKeysPath}`);
   }
 
@@ -81,10 +91,17 @@ export class ContainerOrchestrator {
   async startDevContainer(session) {
     console.log(`🛠️  Starting dev container ${session.devContainer}`);
     
+    // Build environment variables
+    const env = [];
+    if (session.postSpinupCommands.length > 0) {
+      env.push('POST_SPINUP_COMMANDS_ENABLED=true');
+    }
+    
     const container = await this.docker.createContainer({
       Image: this.baseImages.dev,
       name: session.devContainer,
       ExposedPorts: { '22/tcp': {} },
+      Env: env,
       HostConfig: {
         NetworkMode: session.network,
         PortBindings: { '22/tcp': [{ HostPort: '0' }] }, // Dynamic port

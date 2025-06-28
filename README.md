@@ -1,5 +1,7 @@
 # Claude in a Box Mark 2
 
+![Claude in a Box](claude-box-big.png)
+
 A dockerized web-based development environment providing instant access to AI coding assistants through your browser.
 
 ## Architecture

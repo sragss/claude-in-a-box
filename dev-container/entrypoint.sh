@@ -27,6 +27,66 @@ if [ ! -f /etc/ssh/ssh_host_rsa_key ]; then
     ssh-keygen -A
 fi
 
+# Execute post-spinup commands if provided
+if [ "$POST_SPINUP_COMMANDS_ENABLED" = "true" ] && [ -f "/ssh-keys/post-spinup-commands.json" ]; then
+    echo "📋 Executing post-spinup commands..."
+    
+    # Parse and execute commands
+    node -e "
+        const fs = require('fs');
+        const { execSync } = require('child_process');
+        const path = require('path');
+        
+        try {
+            const commands = JSON.parse(fs.readFileSync('/ssh-keys/post-spinup-commands.json', 'utf8'));
+            
+            for (const cmd of commands) {
+                console.log(\`🔄 Executing: \${cmd.type}\`);
+                
+                if (cmd.type === 'git_clone') {
+                    console.log(\`📂 Cloning \${cmd.repo} to \${cmd.directory}\`);
+                    const dirName = path.dirname(cmd.directory);
+                    const baseName = path.basename(cmd.directory);
+                    
+                    // Ensure parent directory exists
+                    execSync(\`mkdir -p \${dirName}\`, { stdio: 'inherit' });
+                    
+                    // Clone repo
+                    execSync(\`git clone \${cmd.repo} \${cmd.directory}\`, { 
+                        stdio: 'inherit',
+                        cwd: '/',
+                        uid: 1000, // node user
+                        gid: 1000  // node group
+                    });
+                    
+                    // Set ownership
+                    execSync(\`chown -R node:node \${cmd.directory}\`);
+                    
+                    console.log(\`✅ Repository cloned to \${cmd.directory}\`);
+                    
+                } else if (cmd.type === 'shell_command') {
+                    console.log(\`💻 Running: \${cmd.command}\`);
+                    
+                    const options = {
+                        stdio: 'inherit',
+                        cwd: cmd.workingDirectory || '/workspace',
+                        uid: 1000, // node user
+                        gid: 1000  // node group
+                    };
+                    
+                    execSync(cmd.command, options);
+                    console.log(\`✅ Command completed: \${cmd.command}\`);
+                }
+            }
+            
+            console.log('✅ All post-spinup commands completed');
+        } catch (error) {
+            console.error('❌ Error executing post-spinup commands:', error.message);
+            // Don't fail container startup if post-spinup commands fail
+        }
+    "
+fi
+
 echo "🚀 Starting SSH daemon..."
 
 # Execute the command passed to docker run

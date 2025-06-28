@@ -38,19 +38,22 @@ app.post('/api/auth/login', (req, res) => {
 
 app.post('/api/session/create', async (req, res) => {
   try {
-    const { token } = req.body;
+    const { token, postSpinupCommands = [] } = req.body;
     
     if (!token) {
       return res.status(401).json({ error: 'Authentication token required' });
     }
     
     console.log('🚀 Creating new development session...');
+    if (postSpinupCommands.length > 0) {
+      console.log('📋 Post-spinup commands:', postSpinupCommands.map(cmd => cmd.type).join(', '));
+    }
     
     // Generate session ID
     const sessionId = uuidv4();
     
-    // Create containers
-    const session = await containerOrchestrator.createSession(sessionId);
+    // Create containers with post-spinup commands
+    const session = await containerOrchestrator.createSession(sessionId, { postSpinupCommands });
     
     // Store session
     sessionManager.addSession(sessionId, session);
