@@ -34,50 +34,28 @@ A dockerized web-based development environment providing instant access to AI co
 - [Docker](https://docker.com)
 - [just](https://github.com/casey/just) command runner
 
-### Middleware Development
+### Quick Start
 ```bash
-# Start middleware system (recommended)
-just middleware
+# Start middleware server (in one terminal)
+just local
+
+# Start frontend (in another terminal)
+just frontend
 
 # Access application at http://localhost:5175
 # Login password: devpassword
 ```
 
-### Local Development (Legacy)
+### Development Commands
 ```bash
-# Start containers directly (without middleware)
-just local
-
-# Access terminal at http://localhost:3001
-# SSH credentials: node/devpassword
-```
-
-### Individual Container Management
-```bash
-# Start only dev container
-just dev
-
-# Start only Wetty (connects to local dev container)
-just wetty
-
-# Connect Wetty to remote dev container
-just wetty-remote host=remote-server port=2222 user=node
-
 # View logs
 just logs
 
-# SSH directly into dev container
-just ssh
-
-# Clean up
+# Clean up containers
 just clean
-```
 
-### Frontend (Manual)
-```bash
-cd test-frontend
-bun run dev
-# Access at http://localhost:5175
+# Rebuild everything
+just rebuild
 ```
 
 ## Features

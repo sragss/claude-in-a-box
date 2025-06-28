@@ -11,21 +11,19 @@ wetty_port := "3001"
 default:
     @just --list
 
-# Start both containers locally
-local: clean network dev wetty
-    @echo "🚀 Claude in a Box is running!"
-    @echo "📡 Wetty terminal: http://localhost:{{wetty_port}}"
-    @echo "🔧 Dev container SSH: localhost:{{dev_port}}"
-    @echo "👤 SSH credentials: node/devpassword"
-
-# Start full middleware system (containers + server)
-middleware: clean
-    @echo "🚀 Starting Claude in a Box with middleware..."
+# Start middleware server (backend only)
+local: clean
+    @echo "🚀 Starting Claude in a Box middleware..."
     @docker build -q -t claude-dev-image ./dev-container
     @docker build -q -t claude-wetty-image ./wetty
     @echo "✅ Container images built"
     @echo "🌐 Starting middleware server..."
     @cd middleware && bun run dev
+
+# Start frontend development server
+frontend:
+    @echo "🖥️  Starting frontend development server..."
+    @cd test-frontend && bun run dev
 
 # Create Docker network
 network:
