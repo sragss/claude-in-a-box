@@ -20,7 +20,7 @@ class ClaudeInABox {
         
         <div id="auth-section" class="auth-section">
           <div class="auth-card">
-            <h2>🔐 Authentication</h2>
+            <h2>Authentication</h2>
             <p>Enter password to access development environments</p>
             <div class="auth-form">
               <input type="password" id="password-input" placeholder="Enter password" />
@@ -32,7 +32,7 @@ class ClaudeInABox {
 
         <div id="session-section" class="session-section hidden">
           <div class="session-controls">
-            <h2>🚀 Development Environment</h2>
+            <h2>Development Environment</h2>
             <div class="controls-row">
               <button id="create-session-btn" class="primary-btn">Create New Environment</button>
               <button id="cleanup-session-btn" class="secondary-btn hidden">Cleanup Environment</button>
