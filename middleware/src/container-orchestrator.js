@@ -15,6 +15,10 @@ export class ContainerOrchestrator {
   async createSession(sessionId, options = {}) {
     const { postSpinupCommands = [] } = options;
     
+    // Extract cloned repo directory from git_clone commands
+    const gitCloneCmd = postSpinupCommands.find(cmd => cmd.type === 'git_clone');
+    const startupDirectory = gitCloneCmd ? gitCloneCmd.directory : '/home/node';
+    
     const session = {
       sessionId,
       network: `claude-${sessionId}`,
@@ -22,6 +26,7 @@ export class ContainerOrchestrator {
       wettyContainer: `claude-wetty-${sessionId}`,
       sshKeysPath: path.join(process.cwd(), 'sessions', sessionId, 'ssh-keys'),
       postSpinupCommands,
+      startupDirectory,
       devPort: null,
       wettyPort: null
     };
@@ -129,7 +134,8 @@ export class ContainerOrchestrator {
       Env: [
         `SSH_HOST=${session.devContainer}`,
         'SSH_USER=node',
-        'USE_SSH_KEY=true'
+        'USE_SSH_KEY=true',
+        `STARTUP_DIRECTORY=${session.startupDirectory}`
       ],
       HostConfig: {
         NetworkMode: session.network,

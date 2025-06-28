@@ -48,33 +48,26 @@ if [ "$POST_SPINUP_COMMANDS_ENABLED" = "true" ] && [ -f "/ssh-keys/post-spinup-c
                     const dirName = path.dirname(cmd.directory);
                     const baseName = path.basename(cmd.directory);
                     
-                    // Ensure parent directory exists
+                    // Ensure parent directory exists and is owned by node user
                     execSync(\`mkdir -p \${dirName}\`, { stdio: 'inherit' });
+                    execSync(\`chown -R node:node \${dirName}\`, { stdio: 'inherit' });
                     
-                    // Clone repo
-                    execSync(\`git clone \${cmd.repo} \${cmd.directory}\`, { 
+                    // Clone repo as node user using su
+                    execSync(\`su node -c 'git clone \${cmd.repo} \${cmd.directory}'\`, { 
                         stdio: 'inherit',
-                        cwd: '/',
-                        uid: 1000, // node user
-                        gid: 1000  // node group
+                        cwd: '/'
                     });
-                    
-                    // Set ownership
-                    execSync(\`chown -R node:node \${cmd.directory}\`);
                     
                     console.log(\`✅ Repository cloned to \${cmd.directory}\`);
                     
                 } else if (cmd.type === 'shell_command') {
                     console.log(\`💻 Running: \${cmd.command}\`);
                     
-                    const options = {
-                        stdio: 'inherit',
-                        cwd: cmd.workingDirectory || '/workspace',
-                        uid: 1000, // node user
-                        gid: 1000  // node group
-                    };
-                    
-                    execSync(cmd.command, options);
+                    // Run command as node user
+                    const workDir = cmd.workingDirectory || '/home/node';
+                    execSync(\`su node -c 'cd \${workDir} && \${cmd.command}'\`, {
+                        stdio: 'inherit'
+                    });
                     console.log(\`✅ Command completed: \${cmd.command}\`);
                 }
             }

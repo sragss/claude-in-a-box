@@ -24,7 +24,7 @@ class ClaudeInABox {
             <p>Enter password and optionally specify a GitHub repository to clone</p>
             <div class="auth-form">
               <input type="password" id="password-input" placeholder="Enter password" />
-              <input type="url" id="github-repo-input" placeholder="GitHub repo URL (optional)" />
+              <input type="text" id="github-repo-input" placeholder="GitHub repo: user/repo or full URL (optional)" />
               <button id="login-btn">Login</button>
             </div>
             <div id="auth-status" class="status-message"></div>
@@ -69,6 +69,9 @@ class ClaudeInABox {
     // Login
     document.getElementById('login-btn')?.addEventListener('click', () => this.handleLogin());
     document.getElementById('password-input')?.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') this.handleLogin();
+    });
+    document.getElementById('github-repo-input')?.addEventListener('keypress', (e) => {
       if (e.key === 'Enter') this.handleLogin();
     });
 
@@ -141,16 +144,27 @@ class ClaudeInABox {
       // Build post-spinup commands
       const postSpinupCommands = [];
       if (githubRepo) {
-        const repoName = githubRepo.split('/').pop()?.replace('.git', '') || 'repo';
+        // Validate and normalize GitHub repo URL
+        let repoUrl = githubRepo;
+        let repoName = '';
+        
+        if (githubRepo.startsWith('https://github.com/')) {
+          // Full URL provided
+          repoUrl = githubRepo;
+          repoName = githubRepo.split('/').pop()?.replace('.git', '') || 'repo';
+        } else if (githubRepo.includes('/') && !githubRepo.includes('://')) {
+          // user/repo format
+          repoUrl = `https://github.com/${githubRepo}`;
+          repoName = githubRepo.split('/').pop()?.replace('.git', '') || 'repo';
+        } else {
+          this.showStatus('session-status', 'Invalid GitHub repo format. Use: user/repo or full URL', 'error');
+          return;
+        }
+        
         postSpinupCommands.push({
           type: 'git_clone',
-          repo: githubRepo,
-          directory: `/workspace/${repoName}`
-        });
-        postSpinupCommands.push({
-          type: 'shell_command',
-          command: `cd /workspace/${repoName}`,
-          description: 'Change to project directory'
+          repo: repoUrl,
+          directory: `/home/node/${repoName}`
         });
       }
 

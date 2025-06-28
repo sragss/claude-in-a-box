@@ -8,6 +8,7 @@ SSH_HOST=${SSH_HOST:-"localhost"}
 SSH_PORT=${SSH_PORT:-"22"}
 SSH_USER=${SSH_USER:-"node"}
 USE_SSH_KEY=${USE_SSH_KEY:-"true"}
+STARTUP_DIRECTORY=${STARTUP_DIRECTORY:-"/home/node"}
 
 echo "📡 SSH Target: ${SSH_USER}@${SSH_HOST}:${SSH_PORT}"
 
@@ -58,14 +59,17 @@ fi
 
 chmod 600 /home/wetty/.ssh/config
 
-# Build the command with dynamic parameters
-WETTY_CMD="$1 --ssh-host ${SSH_HOST} --ssh-port ${SSH_PORT} --ssh-user ${SSH_USER} --ssh-config /home/wetty/.ssh/config ${WETTY_ARGS}"
+echo "🚀 Starting Wetty..."
+echo "📁 Startup directory: ${STARTUP_DIRECTORY}"
 
-# Add any additional arguments passed to the container
-shift
-WETTY_CMD="$WETTY_CMD $@"
-
-echo "🚀 Starting Wetty with command: $WETTY_CMD"
-
-# Execute the command
-exec $WETTY_CMD
+# Start Wetty with SSH command that changes to the target directory
+exec wetty \
+  --host 0.0.0.0 \
+  --port 3001 \
+  --ssh-host "${SSH_HOST}" \
+  --ssh-port "${SSH_PORT}" \
+  --ssh-user "${SSH_USER}" \
+  --ssh-auth publickey \
+  --ssh-key /home/wetty/.ssh/id_rsa \
+  --allow-iframe \
+  --command "cd ${STARTUP_DIRECTORY} && exec bash -l"
