@@ -18,7 +18,7 @@ A web-based development environment that provides instant access to Claude Code 
 
 **Wetty Proxy**: Web terminal emulator that proxies browser connections to the DevPod container via SSH.
 
-**DevPod VM**: Containerized Ubuntu environment with Node.js, git, and Claude Code CLI pre-installed for instant development.
+**DevPod VM**: Containerized Ubuntu environment with Node.js, git, Claude Code CLI, and OpenAI Codex CLI pre-installed for instant AI-powered development.
 
 ## Quick Start
 
@@ -31,6 +31,7 @@ A web-based development environment that provides instant access to Claude Code 
 
 - ✅ Web-based terminal access
 - ✅ Claude Code CLI pre-installed
+- ✅ OpenAI Codex CLI pre-installed
 - ✅ Git and Node.js ready
 - ✅ Instant container spin-up
 - ✅ No local dev environment needed
