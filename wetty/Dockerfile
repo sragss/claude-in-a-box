@@ -18,10 +18,13 @@ COPY wetty_key /home/wetty/.ssh/id_rsa
 RUN chown wetty:wetty /home/wetty/.ssh/id_rsa \
     && chmod 600 /home/wetty/.ssh/id_rsa
 
-# Create SSH config to prefer key authentication
+# Create SSH config to force key authentication only
 RUN echo "Host claude-dev" > /home/wetty/.ssh/config \
     && echo "  PreferredAuthentications publickey" >> /home/wetty/.ssh/config \
+    && echo "  PubkeyAuthentication yes" >> /home/wetty/.ssh/config \
+    && echo "  PasswordAuthentication no" >> /home/wetty/.ssh/config \
     && echo "  IdentityFile /home/wetty/.ssh/id_rsa" >> /home/wetty/.ssh/config \
+    && echo "  IdentitiesOnly yes" >> /home/wetty/.ssh/config \
     && echo "  StrictHostKeyChecking no" >> /home/wetty/.ssh/config \
     && chown wetty:wetty /home/wetty/.ssh/config \
     && chmod 600 /home/wetty/.ssh/config
@@ -36,4 +39,4 @@ WORKDIR /home/wetty
 EXPOSE 3001
 
 # Default command - can be overridden with environment variables
-CMD ["wetty", "--host", "0.0.0.0", "--port", "3001", "--allow-iframe"]
+CMD ["wetty", "--host", "0.0.0.0", "--port", "3001", "--ssh-config", "/home/wetty/.ssh/config", "--allow-iframe"]

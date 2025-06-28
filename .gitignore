@@ -42,8 +42,7 @@ wetty.log
 .docker/
 docker-data/
 
-# DevPod and container files
-.devcontainer/.env
+# Container files
 
 # SSH keys (generated at build time)
 wetty/wetty_key

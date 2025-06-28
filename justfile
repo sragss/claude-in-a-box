@@ -45,7 +45,7 @@ wetty: dev
         --network {{network_name}} \
         -p {{wetty_port}}:3001 \
         claude-wetty-image \
-        wetty --host 0.0.0.0 --port 3001 --ssh-host {{dev_container_name}} --ssh-user node --allow-iframe
+        wetty --host 0.0.0.0 --port 3001 --ssh-host {{dev_container_name}} --ssh-user node --ssh-auth publickey --ssh-key /home/wetty/.ssh/id_rsa --ssh-config /home/wetty/.ssh/config --allow-iframe
 
 # Start Wetty connecting to remote dev container
 wetty-remote host="localhost" port="2222" user="node":
