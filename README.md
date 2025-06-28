@@ -1,37 +1,73 @@
 # Claude in a Box Mark 2
 
-A web-based development environment that provides instant access to Claude Code CLI through your browser.
+A dockerized web-based development environment providing instant access to AI coding assistants through your browser.
 
 ## Architecture
 
 ```
 ┌─────────────────┐    HTTP     ┌─────────────────┐    SSH     ┌─────────────────┐
-│   Frontend      │ ──────────▶ │   Wetty Proxy   │ ─────────▶ │   DevPod VM     │
-│   (Vite + TS)   │             │   (Terminal)    │            │   (Ubuntu +     │
-│   Port 5175     │             │   Port 3001     │            │   Claude Code)  │
+│   Frontend      │ ──────────▶ │   Wetty         │ ─────────▶ │   Dev Container │
+│   (Manual)      │             │   (Docker)      │            │   (Docker)      │
+│   Port 5175     │             │   Port 3001     │            │   Port 2222     │
 └─────────────────┘             └─────────────────┘            └─────────────────┘
 ```
 
 ### Components
 
-**Frontend**: Vite TypeScript application serving the web interface with an embedded terminal iframe.
+**Frontend**: Vite TypeScript application serving the web interface with an embedded terminal iframe (manual setup).
 
-**Wetty Proxy**: Web terminal emulator that proxies browser connections to the DevPod container via SSH.
+**Wetty Container**: Dockerized web terminal emulator that connects to any SSH host, enabling remote development.
 
-**DevPod VM**: Containerized Ubuntu environment with Node.js, git, Claude Code CLI, and OpenAI Codex CLI pre-installed for instant AI-powered development.
+**Dev Container**: Standalone Docker container with Node.js, git, Claude Code CLI, and OpenAI Codex CLI pre-installed.
 
 ## Quick Start
 
-1. Start the frontend: `bun run dev`
-2. Start Wetty: `wetty --host localhost --port 3001 --ssh-host <container>.devpod --ssh-user node --allow-iframe`
-3. Create DevPod container: `devpod up . --id <name> --ide none`
-4. Access at `http://localhost:5175`
+### Prerequisites
+- [Docker](https://docker.com)
+- [just](https://github.com/casey/just) command runner
+
+### Local Development
+```bash
+# Start both containers locally
+just local
+
+# Access terminal at http://localhost:3001
+# SSH credentials: node/devpassword
+```
+
+### Individual Container Management
+```bash
+# Start only dev container
+just dev
+
+# Start only Wetty (connects to local dev container)
+just wetty
+
+# Connect Wetty to remote dev container
+just wetty-remote host=remote-server port=2222 user=node
+
+# View logs
+just logs
+
+# SSH directly into dev container
+just ssh
+
+# Clean up
+just clean
+```
+
+### Frontend (Manual)
+```bash
+cd test-frontend
+bun run dev
+# Access at http://localhost:5175
+```
 
 ## Features
 
-- ✅ Web-based terminal access
-- ✅ Claude Code CLI pre-installed
-- ✅ OpenAI Codex CLI pre-installed
-- ✅ Git and Node.js ready
-- ✅ Instant container spin-up
-- ✅ No local dev environment needed
+- ✅ **Fully Dockerized**: No local dependencies except Docker
+- ✅ **Portable**: Run containers on different machines
+- ✅ **AI-Powered**: Claude Code + OpenAI Codex pre-installed
+- ✅ **Web Terminal**: Browser-based development environment
+- ✅ **SSH Access**: Direct terminal access via SSH
+- ✅ **Just Commands**: Simple orchestration with justfile

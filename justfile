@@ -1,0 +1,97 @@
+# Claude in a Box - Container Orchestration
+
+# Variables
+network_name := "claude-network"
+dev_container_name := "claude-dev"
+wetty_container_name := "claude-wetty"
+dev_port := "2222"
+wetty_port := "3001"
+
+# Default recipe
+default:
+    @just --list
+
+# Start both containers locally
+local: clean network dev wetty
+    @echo "🚀 Claude in a Box is running!"
+    @echo "📡 Wetty terminal: http://localhost:{{wetty_port}}"
+    @echo "🔧 Dev container SSH: localhost:{{dev_port}}"
+    @echo "👤 SSH credentials: node/devpassword"
+
+# Create Docker network
+network:
+    @echo "🌐 Creating Docker network..."
+    @docker network create {{network_name}} 2>/dev/null || true
+
+# Start development container
+dev: network
+    @echo "🛠️  Starting development container..."
+    @docker build -t claude-dev-image ./dev-container
+    @docker run -d \
+        --name {{dev_container_name}} \
+        --network {{network_name}} \
+        -p {{dev_port}}:22 \
+        -v $(pwd):/workspace \
+        claude-dev-image
+
+# Start Wetty container (connects to dev container)
+wetty: dev
+    @echo "🔑 Extracting SSH key from dev container..."
+    @docker cp {{dev_container_name}}:/tmp/wetty_key ./wetty/wetty_key
+    @echo "🖥️  Starting Wetty terminal..."
+    @docker build -t claude-wetty-image ./wetty
+    @docker run -d \
+        --name {{wetty_container_name}} \
+        --network {{network_name}} \
+        -p {{wetty_port}}:3001 \
+        claude-wetty-image \
+        wetty --host 0.0.0.0 --port 3001 --ssh-host {{dev_container_name}} --ssh-user node --allow-iframe
+
+# Start Wetty connecting to remote dev container
+wetty-remote host="localhost" port="2222" user="node":
+    @echo "🖥️  Starting Wetty (connecting to {{user}}@{{host}}:{{port}})..."
+    @docker build -t claude-wetty-image ./wetty
+    @docker run -d \
+        --name {{wetty_container_name}} \
+        -p {{wetty_port}}:3001 \
+        claude-wetty-image \
+        wetty --host 0.0.0.0 --port 3001 --ssh-host {{host}} --ssh-port {{port}} --ssh-user {{user}} --allow-iframe
+
+# Show container logs
+logs container="":
+    #!/bin/bash
+    if [ "{{container}}" = "dev" ] || [ "{{container}}" = "" ]; then
+        echo "=== Dev Container Logs ==="
+        docker logs {{dev_container_name}} --tail 20
+    fi
+    if [ "{{container}}" = "wetty" ] || [ "{{container}}" = "" ]; then
+        echo "=== Wetty Container Logs ==="
+        docker logs {{wetty_container_name}} --tail 20
+    fi
+
+# Show container status
+status:
+    @echo "📊 Container Status:"
+    @docker ps --filter "name={{dev_container_name}}" --filter "name={{wetty_container_name}}"
+
+# SSH into dev container
+ssh:
+    @ssh -p {{dev_port}} -o StrictHostKeyChecking=no node@localhost
+
+# Stop containers
+stop:
+    @echo "🛑 Stopping containers..."
+    @docker stop {{dev_container_name}} {{wetty_container_name}} 2>/dev/null || true
+
+# Clean up containers and network
+clean: stop
+    @echo "🧹 Cleaning up..."
+    @docker rm {{dev_container_name}} {{wetty_container_name}} 2>/dev/null || true
+    @docker network rm {{network_name}} 2>/dev/null || true
+    @rm -f ./wetty/wetty_key 2>/dev/null || true
+
+# Rebuild containers
+rebuild: clean
+    @echo "🔄 Rebuilding containers..."
+    @docker rmi claude-dev-image claude-wetty-image 2>/dev/null || true
+    @just local

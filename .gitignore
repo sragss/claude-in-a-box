@@ -38,8 +38,16 @@ Thumbs.db
 logs/
 wetty.log
 
+# Docker volumes and data
+.docker/
+docker-data/
+
 # DevPod and container files
 .devcontainer/.env
+
+# SSH keys (generated at build time)
+wetty/wetty_key
+wetty/wetty_key.pub
 
 # Temporary files
 *.tmp
