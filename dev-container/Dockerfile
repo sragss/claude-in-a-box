@@ -19,13 +19,10 @@ RUN mkdir /var/run/sshd \
     && sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config \
     && echo 'node ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
-# Create SSH key pair for Wetty access
-RUN ssh-keygen -t rsa -b 2048 -f /tmp/wetty_key -N "" \
-    && mkdir -p /home/node/.ssh \
-    && cat /tmp/wetty_key.pub >> /home/node/.ssh/authorized_keys \
+# Prepare SSH directory for runtime key injection
+RUN mkdir -p /home/node/.ssh \
     && chown -R node:node /home/node/.ssh \
-    && chmod 700 /home/node/.ssh \
-    && chmod 600 /home/node/.ssh/authorized_keys
+    && chmod 700 /home/node/.ssh
 
 # Set up git config for node user
 USER node
@@ -36,11 +33,16 @@ RUN git config --global init.defaultBranch main \
 # Switch back to root for service startup
 USER root
 
+# Copy entrypoint script
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 # Expose SSH port
 EXPOSE 22
 
 # Set working directory
 WORKDIR /workspace
 
-# Start SSH daemon
+# Use entrypoint script to handle SSH key injection
+ENTRYPOINT ["/entrypoint.sh"]
 CMD ["/usr/sbin/sshd", "-D"]

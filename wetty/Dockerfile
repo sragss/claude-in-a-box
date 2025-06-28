@@ -13,21 +13,12 @@ RUN addgroup -g 1001 wetty \
     && chown -R wetty:wetty /home/wetty/.ssh \
     && chmod 700 /home/wetty/.ssh
 
-# Copy SSH private key from build context
-COPY wetty_key /home/wetty/.ssh/id_rsa
-RUN chown wetty:wetty /home/wetty/.ssh/id_rsa \
-    && chmod 600 /home/wetty/.ssh/id_rsa
+# Prepare SSH directory for runtime configuration
+# SSH keys and config will be injected at runtime
 
-# Create SSH config to force key authentication only
-RUN echo "Host claude-dev" > /home/wetty/.ssh/config \
-    && echo "  PreferredAuthentications publickey" >> /home/wetty/.ssh/config \
-    && echo "  PubkeyAuthentication yes" >> /home/wetty/.ssh/config \
-    && echo "  PasswordAuthentication no" >> /home/wetty/.ssh/config \
-    && echo "  IdentityFile /home/wetty/.ssh/id_rsa" >> /home/wetty/.ssh/config \
-    && echo "  IdentitiesOnly yes" >> /home/wetty/.ssh/config \
-    && echo "  StrictHostKeyChecking no" >> /home/wetty/.ssh/config \
-    && chown wetty:wetty /home/wetty/.ssh/config \
-    && chmod 600 /home/wetty/.ssh/config
+# Copy entrypoint script (as root before switching users)
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 # Switch to wetty user
 USER wetty
@@ -38,5 +29,6 @@ WORKDIR /home/wetty
 # Expose Wetty port
 EXPOSE 3001
 
-# Default command - can be overridden with environment variables
-CMD ["wetty", "--host", "0.0.0.0", "--port", "3001", "--ssh-config", "/home/wetty/.ssh/config", "--allow-iframe"]
+# Use entrypoint script to handle dynamic configuration
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["wetty", "--host", "0.0.0.0", "--port", "3001", "--allow-iframe"]

@@ -44,7 +44,8 @@ docker-data/
 
 # Container files
 
-# SSH keys (generated at build time)
+# SSH keys (generated at runtime)
+ssh-keys/
 wetty/wetty_key
 wetty/wetty_key.pub
 
