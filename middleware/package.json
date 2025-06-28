@@ -1,0 +1,25 @@
+{
+  "name": "claude-middleware",
+  "version": "1.0.0",
+  "description": "Middleware for orchestrating Claude in a Box containers",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "dev": "bun --watch src/server.js",
+    "start": "bun src/server.js",
+    "build": "echo 'No build step needed'"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "dockerode": "^4.0.2",
+    "uuid": "^9.0.1",
+    "http-proxy-middleware": "^2.0.6"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0"
+  },
+  "keywords": ["docker", "containers", "middleware", "devops"],
+  "author": "Claude in a Box",
+  "license": "MIT"
+}

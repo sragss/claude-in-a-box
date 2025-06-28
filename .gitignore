@@ -49,6 +49,10 @@ ssh-keys/
 wetty/wetty_key
 wetty/wetty_key.pub
 
+# Middleware session data
+middleware/sessions/
+middleware/node_modules/
+
 # Temporary files
 *.tmp
 *.temp

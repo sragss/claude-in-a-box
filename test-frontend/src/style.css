@@ -1,11 +1,11 @@
 :root {
-  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
   color-scheme: light dark;
   color: rgba(255, 255, 255, 0.87);
-  background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+  background-color: #1a1a1a;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -13,137 +13,304 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+* {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
-  min-width: 320px;
   min-height: 100vh;
-  overflow: hidden;
+  background: linear-gradient(135deg, #1e3a8a 0%, #7c3aed 100%);
 }
 
 #app {
-  width: 100vw;
-  height: 100vh;
+  min-height: 100vh;
+  padding: 2rem;
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
-.terminal-container {
+.claude-app {
   width: 100%;
-  height: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.app-header {
+  text-align: center;
+  margin-bottom: 2rem;
+  color: white;
+}
+
+.app-header h1 {
+  font-size: 3rem;
+  margin: 0 0 0.5rem 0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.app-header p {
+  font-size: 1.2rem;
+  margin: 0;
+  opacity: 0.9;
+}
+
+/* Auth Section */
+.auth-section {
   display: flex;
-  flex-direction: column;
-  background: rgba(0, 0, 0, 0.05);
+  justify-content: center;
+  margin-bottom: 2rem;
+}
+
+.auth-card {
+  background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 2rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  min-width: 400px;
+}
+
+.auth-card h2 {
+  margin: 0 0 1rem 0;
+  text-align: center;
+}
+
+.auth-card p {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  opacity: 0.8;
+}
+
+.auth-form {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.auth-form input {
+  flex: 1;
+  padding: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  font-size: 1rem;
+}
+
+.auth-form input::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.auth-form button {
+  padding: 0.75rem 1.5rem;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background 0.2s;
+}
+
+.auth-form button:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.auth-form button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Session Section */
+.session-section {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  overflow: hidden;
+}
+
+.session-controls {
+  padding: 2rem;
+  color: white;
+}
+
+.session-controls h2 {
+  margin: 0 0 1.5rem 0;
+  text-align: center;
+}
+
+.controls-row {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.primary-btn {
+  padding: 1rem 2rem;
+  background: #10b981;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+.primary-btn:hover:not(:disabled) {
+  background: #059669;
+}
+
+.primary-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.secondary-btn {
+  padding: 1rem 2rem;
+  background: #dc2626;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+.secondary-btn:hover:not(:disabled) {
+  background: #b91c1c;
+}
+
+.secondary-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Terminal Section */
+.terminal-section {
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .terminal-header {
-  padding: 1.5rem 2rem 1rem;
-  text-align: center;
-  background: rgba(255, 255, 255, 0.02);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background: rgba(0, 0, 0, 0.3);
+  color: white;
 }
 
-.terminal-header h1 {
-  font-size: 2rem;
-  margin: 0 0 0.5rem;
-  font-weight: 600;
-  background: linear-gradient(135deg, #646cff 0%, #535bf2 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.terminal-header p {
+.terminal-header h3 {
   margin: 0;
-  color: rgba(255, 255, 255, 0.6);
+}
+
+.session-info {
+  font-family: monospace;
   font-size: 0.9rem;
+  opacity: 0.8;
 }
 
 .terminal-wrapper {
-  flex: 1;
-  padding: 1rem;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
+  height: 600px;
+  background: #000;
 }
 
 .terminal-iframe {
   width: 100%;
   height: 100%;
   border: none;
-  border-radius: 12px;
   background: #000;
-  box-shadow: 
-    0 20px 25px -5px rgba(0, 0, 0, 0.3),
-    0 10px 10px -5px rgba(0, 0, 0, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  transition: all 0.3s ease;
-}
-
-.terminal-iframe:hover {
-  box-shadow: 
-    0 25px 50px -12px rgba(0, 0, 0, 0.4),
-    0 15px 15px -5px rgba(0, 0, 0, 0.25),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  transform: translateY(-2px);
 }
 
 .terminal-footer {
-  padding: 1rem 2rem 1.5rem;
-  text-align: center;
-  flex-shrink: 0;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .external-link {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.7);
   text-decoration: none;
-  font-size: 0.875rem;
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.05);
-  transition: all 0.2s ease;
+  font-size: 0.9rem;
+  transition: color 0.2s;
 }
 
 .external-link:hover {
-  color: #646cff;
-  border-color: rgba(100, 108, 255, 0.3);
-  background: rgba(100, 108, 255, 0.1);
-  transform: translateY(-1px);
+  color: white;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+/* Status Messages */
+.status-message {
+  text-align: center;
+  padding: 0.75rem;
+  border-radius: 8px;
+  margin-top: 1rem;
+  font-weight: 500;
+}
+
+.status-message.success {
+  background: rgba(16, 185, 129, 0.2);
+  border: 1px solid rgba(16, 185, 129, 0.5);
+  color: #10b981;
+}
+
+.status-message.error {
+  background: rgba(220, 38, 38, 0.2);
+  border: 1px solid rgba(220, 38, 38, 0.5);
+  color: #dc2626;
+}
+
+.status-message.info {
+  background: rgba(59, 130, 246, 0.2);
+  border: 1px solid rgba(59, 130, 246, 0.5);
+  color: #3b82f6;
+}
+
+/* Utility Classes */
+.hidden {
+  display: none !important;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  #app {
+    padding: 1rem;
   }
   
-  .terminal-container {
-    background: rgba(255, 255, 255, 0.1);
+  .auth-card {
+    min-width: unset;
+    width: 100%;
+  }
+  
+  .auth-form {
+    flex-direction: column;
+  }
+  
+  .controls-row {
+    flex-direction: column;
   }
   
   .terminal-header {
-    background: rgba(0, 0, 0, 0.02);
-    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    flex-direction: column;
+    gap: 0.5rem;
+    text-align: center;
   }
   
-  .terminal-header p {
-    color: rgba(0, 0, 0, 0.6);
+  .terminal-wrapper {
+    height: 400px;
   }
   
-  .external-link {
-    color: rgba(0, 0, 0, 0.6);
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    background: rgba(0, 0, 0, 0.05);
-  }
-  
-  .external-link:hover {
-    color: #646cff;
-    border-color: rgba(100, 108, 255, 0.3);
-    background: rgba(100, 108, 255, 0.1);
+  .app-header h1 {
+    font-size: 2rem;
   }
 }
