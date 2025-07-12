@@ -2,7 +2,7 @@ import Docker from 'dockerode';
 import { execSync } from 'child_process';
 import { mkdirSync, writeFileSync, rmSync } from 'fs';
 import path from 'path';
-import type { Session, CreateSessionOptions, PostSpinupCommand } from './types';
+import type { DevSession, CreateSessionOptions, PostSpinupCommand } from './types';
 
 export class ContainerOrchestrator {
   private docker: Docker;
@@ -16,14 +16,18 @@ export class ContainerOrchestrator {
     };
   }
 
-  async createSession(sessionId: string, options: CreateSessionOptions = {}): Promise<Session> {
-    const { postSpinupCommands = [] } = options;
+  async createSession(sessionId: string, options: CreateSessionOptions & { 
+    userId: string; 
+    username: string; 
+    userEmail?: string; 
+  }): Promise<DevSession> {
+    const { postSpinupCommands = [], userId, username, userEmail } = options;
     
     // Extract cloned repo directory from git_clone commands
     const gitCloneCmd = postSpinupCommands.find(cmd => cmd.type === 'git_clone');
     const startupDirectory = gitCloneCmd ? gitCloneCmd.directory! : '/home/node';
     
-    const session: Session = {
+    const session: DevSession = {
       sessionId,
       network: `claude-${sessionId}`,
       devContainer: `claude-dev-${sessionId}`,
@@ -32,7 +36,10 @@ export class ContainerOrchestrator {
       postSpinupCommands,
       startupDirectory,
       devPort: null,
-      wettyPort: null
+      wettyPort: null,
+      userId,
+      username,
+      userEmail
     };
 
     try {
@@ -59,7 +66,7 @@ export class ContainerOrchestrator {
     }
   }
 
-  private async generateSSHKeys(session: Session): Promise<void> {
+  private async generateSSHKeys(session: DevSession): Promise<void> {
     console.log(`🔑 Generating SSH keys for session ${session.sessionId}`);
     
     // Create session directory
@@ -79,7 +86,7 @@ export class ContainerOrchestrator {
     console.log(`✅ SSH keys generated at ${session.sshKeysPath}`);
   }
 
-  private async createNetwork(session: Session): Promise<void> {
+  private async createNetwork(session: DevSession): Promise<void> {
     console.log(`🌐 Creating network ${session.network}`);
     
     try {
@@ -97,7 +104,7 @@ export class ContainerOrchestrator {
     }
   }
 
-  private async startDevContainer(session: Session): Promise<void> {
+  private async startDevContainer(session: DevSession): Promise<void> {
     console.log(`🛠️  Starting dev container ${session.devContainer}`);
     
     // Build environment variables
@@ -128,7 +135,7 @@ export class ContainerOrchestrator {
     console.log(`✅ Dev container ${session.devContainer} started on port ${session.devPort}`);
   }
 
-  private async startWettyContainer(session: Session): Promise<void> {
+  private async startWettyContainer(session: DevSession): Promise<void> {
     console.log(`🖥️  Starting Wetty container ${session.wettyContainer}`);
     
     const container = await this.docker.createContainer({
@@ -157,7 +164,7 @@ export class ContainerOrchestrator {
     console.log(`✅ Wetty container ${session.wettyContainer} started on port ${session.wettyPort}`);
   }
 
-  private async waitForContainers(session: Session): Promise<void> {
+  private async waitForContainers(session: DevSession): Promise<void> {
     console.log(`⏳ Waiting for containers to be ready...`);
     
     // Simple wait - in production you'd want proper health checks
@@ -166,7 +173,7 @@ export class ContainerOrchestrator {
     console.log(`✅ Session ${session.sessionId} is ready`);
   }
 
-  async cleanupSession(session: Session): Promise<void> {
+  async cleanupSession(session: DevSession): Promise<void> {
     console.log(`🧹 Cleaning up session ${session.sessionId}`);
     
     try {

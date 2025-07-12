@@ -1,0 +1,28 @@
+// Better Auth handles user and session types internally
+// We only need to define our application-specific types
+
+export interface PostSpinupCommand {
+  type: 'git_clone' | 'shell_command' | 'setup_github_user';
+  repo?: string;
+  directory?: string;
+  command?: string;
+  workingDirectory?: string;
+  username?: string;
+  email?: string;
+}
+
+export interface SessionResponse {
+  success: boolean;
+  sessionId: string;
+  devPort: number;
+  wettyPort: number;
+  terminalUrl: string;
+  message: string;
+}
+
+export type StatusType = 'success' | 'error' | 'info';
+
+export interface StatusMessage {
+  message: string;
+  type: StatusType;
+}

@@ -69,6 +69,21 @@ if [ "$POST_SPINUP_COMMANDS_ENABLED" = "true" ] && [ -f "/ssh-keys/post-spinup-c
                         stdio: 'inherit'
                     });
                     console.log(\`✅ Command completed: \${cmd.command}\`);
+                } else if (cmd.type === 'setup_github_user') {
+                    console.log(\`👤 Setting up GitHub user: \${cmd.username}\`);
+                    
+                    // Configure git with GitHub user info
+                    const gitCommands = [
+                        \`git config --global user.name '\${cmd.username}'\`,
+                        cmd.email ? \`git config --global user.email '\${cmd.email}'\` : null,
+                        \`echo 'export GITHUB_USER="\${cmd.username}"' >> /home/node/.bashrc\`
+                    ].filter(Boolean);
+                    
+                    for (const gitCmd of gitCommands) {
+                        execSync(\`su node -c '\${gitCmd}'\`, { stdio: 'inherit' });
+                    }
+                    
+                    console.log(\`✅ GitHub user \${cmd.username} configured\`);
                 }
             }
             
