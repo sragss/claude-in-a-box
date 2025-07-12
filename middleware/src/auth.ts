@@ -1,17 +1,20 @@
 import { betterAuth } from "better-auth";
 
+const BASE_URL = process.env.BASE_URL || "http://localhost:8080";
+const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
+
 export const auth = betterAuth({
-  baseURL: process.env.BASE_URL || "http://localhost:8080",
+  baseURL: BASE_URL,
   secret: process.env.BETTER_AUTH_SECRET || "dev-secret-key-change-in-production",
   
-  trustedOrigins: ["http://localhost:5173"], // Add frontend URL
+  trustedOrigins: [FRONTEND_URL], // Add frontend URL
   
   socialProviders: {
     github: {
       clientId: process.env.GITHUB_CLIENT_ID!,
       clientSecret: process.env.GITHUB_CLIENT_SECRET!,
       scope: ["user:email"], // Required by Better Auth, allows reading public repos
-      redirectTo: "http://localhost:5173" // Redirect back to frontend after OAuth
+      redirectTo: FRONTEND_URL // Redirect back to frontend after OAuth
     }
   },
   

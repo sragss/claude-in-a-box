@@ -82,10 +82,10 @@ const SessionControls = ({ githubRepo }: SessionControlsProps) => {
   if (!user) return null
 
   return (
-    <Card className="session-section">
-      <div className="session-controls">
-        <h2>Development Environment</h2>
-        <div className="controls-row">
+    <Card className="p-8">
+      <div className="text-center space-y-6">
+        <h2 className="text-2xl font-semibold text-foreground">Development Environment</h2>
+        <div className="flex justify-center">
           {!currentSession ? (
             <Button
               variant="primary"

@@ -13,7 +13,7 @@ const AppContent = () => {
     return (
       <Layout>
         <Header />
-        <div className="loading-container">
+        <div className="text-center py-8">
           Loading...
         </div>
       </Layout>

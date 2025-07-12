@@ -61,17 +61,17 @@ const RepoSelectionPage = () => {
   }
 
   return (
-    <div className="page-container">
-      <Card className="page-card">
-        <div className="page-header">
-          <h1>Select Repository</h1>
-          <p className="page-subtitle">Choose a GitHub repository to clone into your development environment</p>
-          <div className="step-indicator">Step 2 of 3</div>
+    <div className="flex justify-center mb-8">
+      <Card className="w-full max-w-2xl p-8">
+        <div className="text-center mb-8">
+          <h1 className="text-2xl font-semibold mb-2 text-foreground">Select Repository</h1>
+          <p className="text-muted-foreground text-sm mb-6">Choose a GitHub repository to clone into your development environment</p>
+          <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded inline-block">Step 2 of 3</div>
         </div>
         
-        <div className="page-content">
-          <div className="input-section">
-            <label htmlFor="github-repo">GitHub Repository (Optional)</label>
+        <div className="space-y-6">
+          <div className="space-y-3">
+            <label htmlFor="github-repo" className="text-sm font-medium text-foreground">GitHub Repository (Optional)</label>
             <Input
               id="github-repo"
               type="text"
@@ -79,11 +79,11 @@ const RepoSelectionPage = () => {
               value={githubRepo}
               onChange={(e) => setGithubRepo(e.target.value)}
             />
-            <div className="input-help">
+            <div className="text-sm text-muted-foreground space-y-2">
               <p>Examples:</p>
-              <ul>
-                <li><code>facebook/react</code></li>
-                <li><code>https://github.com/vercel/next.js</code></li>
+              <ul className="list-disc list-inside space-y-1 text-xs">
+                <li><code className="bg-muted px-1 py-0.5 rounded text-xs">facebook/react</code></li>
+                <li><code className="bg-muted px-1 py-0.5 rounded text-xs">https://github.com/vercel/next.js</code></li>
                 <li>Leave empty for a blank environment</li>
               </ul>
             </div>
@@ -91,7 +91,7 @@ const RepoSelectionPage = () => {
 
           {status && <StatusMessage message={status.message} type={status.type} />}
 
-          <div className="page-actions">
+          <div className="flex gap-3 justify-center">
             <Button variant="secondary" onClick={handleSkip}>
               Skip - Create Empty Environment
             </Button>

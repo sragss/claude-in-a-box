@@ -120,7 +120,7 @@ export class ContainerOrchestrator {
       Env: env,
       HostConfig: {
         NetworkMode: session.network,
-        PortBindings: { '22/tcp': [{ HostPort: '0' }] }, // Dynamic port
+        // Remove PortBindings - no host port exposure for security
         Binds: [`${session.sshKeysPath}:/ssh-keys:ro`]
       },
       WorkingDir: '/workspace'
@@ -128,11 +128,11 @@ export class ContainerOrchestrator {
 
     await container.start();
     
-    // Get assigned port
-    const containerInfo = await container.inspect();
-    session.devPort = parseInt(containerInfo.NetworkSettings.Ports['22/tcp'][0].HostPort);
+    // Dev container is now only accessible via Docker network, not host ports
+    // We'll use the internal container port (22) for SSH access through the proxy
+    session.devPort = 22; // Internal container port
     
-    console.log(`✅ Dev container ${session.devContainer} started on port ${session.devPort}`);
+    console.log(`✅ Dev container ${session.devContainer} started (network-only access)`);
   }
 
   private async startWettyContainer(session: DevSession): Promise<void> {
@@ -150,18 +150,18 @@ export class ContainerOrchestrator {
       ],
       HostConfig: {
         NetworkMode: session.network,
-        PortBindings: { '3001/tcp': [{ HostPort: '0' }] }, // Dynamic port
+        // Remove PortBindings - no host port exposure for security
         Binds: [`${session.sshKeysPath}:/ssh-keys:ro`]
       }
     });
 
     await container.start();
     
-    // Get assigned port
-    const containerInfo = await container.inspect();
-    session.wettyPort = parseInt(containerInfo.NetworkSettings.Ports['3001/tcp'][0].HostPort);
+    // Wetty container is now only accessible via Docker network, not host ports
+    // We'll use the internal container port (3001) for web access through the proxy
+    session.wettyPort = 3001; // Internal container port
     
-    console.log(`✅ Wetty container ${session.wettyContainer} started on port ${session.wettyPort}`);
+    console.log(`✅ Wetty container ${session.wettyContainer} started (network-only access)`);
   }
 
   private async waitForContainers(session: DevSession): Promise<void> {

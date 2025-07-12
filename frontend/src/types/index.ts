@@ -14,9 +14,8 @@ export interface PostSpinupCommand {
 export interface SessionResponse {
   success: boolean;
   sessionId: string;
-  devPort: number;
-  wettyPort: number;
   terminalUrl: string;
+  devUrl: string;
   message: string;
 }
 

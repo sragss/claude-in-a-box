@@ -25,16 +25,16 @@ const LoginPage = () => {
   }
 
   return (
-    <div className="page-container">
-      <Card className="page-card">
-        <div className="page-header">
-          <h1>Welcome</h1>
-          <p className="page-subtitle">Sign in with GitHub to create and manage your development environments</p>
-          <div className="step-indicator">Step 1 of 3</div>
+    <div className="flex justify-center mb-8">
+      <Card className="w-full max-w-md p-8">
+        <div className="text-center mb-6">
+          <h1 className="text-2xl font-semibold mb-2 text-foreground">Welcome</h1>
+          <p className="text-muted-foreground text-sm mb-6">Sign in with GitHub to create and manage your development environments</p>
+          <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded inline-block">Step 1 of 3</div>
         </div>
         
-        <div className="page-content">
-          <div className="page-actions">
+        <div className="space-y-4">
+          <div className="flex justify-center">
             <Button variant="github" onClick={handleSignIn}>
               <GitHubIcon />
               Sign in with GitHub

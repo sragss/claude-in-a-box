@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { authClient } from '../auth-client'
 import type { PostSpinupCommand, SessionResponse } from '../types'
 
-const MIDDLEWARE_URL = 'http://localhost:8080'
+const MIDDLEWARE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
 
 interface User {
   id: string
@@ -164,12 +164,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         
         if (response.ok) {
           const sessionData = await response.json()
+          console.log('Session status response:', sessionData)
           setDevSession(prev => ({
             ...prev,
             currentSession: {
               sessionId: storedSessionId,
-              wettyPort: sessionData.ports.wetty,
-              devPort: sessionData.ports.dev,
+              terminalUrl: sessionData.endpoints?.terminal || `/proxy/terminal/${storedSessionId}/wetty`,
+              devUrl: sessionData.endpoints?.dev || `/proxy/dev/${storedSessionId}`,
               success: true,
               message: 'Session restored'
             }

@@ -5,10 +5,10 @@ const Header = () => {
   const { user } = useAuth()
 
   return (
-    <header className="app-header">
-      <div className="header-brand">
-        <h1 className="app-title">Claude in a Box</h1>
-        <p className="app-subtitle">AI-powered development environment</p>
+    <header className="text-center mb-12">
+      <div>
+        <h1 className="text-4xl font-bold mb-2 tracking-tight text-foreground">Claude in a Box</h1>
+        <p className="text-base text-muted-foreground">AI-powered development environment</p>
       </div>
       {user && <UserInfo />}
     </header>

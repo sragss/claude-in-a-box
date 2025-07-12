@@ -62,7 +62,7 @@ chmod 600 /home/wetty/.ssh/config
 echo "🚀 Starting Wetty..."
 echo "📁 Startup directory: ${STARTUP_DIRECTORY}"
 
-# Start Wetty with SSH command that changes to the target directory
+# Start Wetty with basic SSH connection (no startup command to avoid hanging)
 exec wetty \
   --host 0.0.0.0 \
   --port 3001 \
@@ -71,5 +71,4 @@ exec wetty \
   --ssh-user "${SSH_USER}" \
   --ssh-auth publickey \
   --ssh-key /home/wetty/.ssh/id_rsa \
-  --allow-iframe \
-  --command "cd ${STARTUP_DIRECTORY} && exec bash -l"
+  --allow-iframe

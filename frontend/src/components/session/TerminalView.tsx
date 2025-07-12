@@ -18,33 +18,99 @@ const TerminalView = () => {
     return null
   }
 
-  const terminalUrl = `http://localhost:${currentSession.wettyPort}/wetty`
+  const terminalUrl = currentSession.terminalUrl || `/proxy/terminal/${currentSession.sessionId}/wetty`
 
   return (
-    <div className="terminal-section">
-      <div className="terminal-header">
-        <h3>Terminal Access</h3>
-        <span className="session-info">
-          Session: {currentSession.sessionId.substring(0, 8)}... | Port: {currentSession.wettyPort}
+    <div className="overflow-hidden">
+      <div className="flex justify-between items-center px-8 py-4 bg-muted border-t border-border">
+        <h3 className="text-base font-medium text-foreground">Terminal Access</h3>
+        <span className="font-mono text-xs text-muted-foreground bg-background px-2 py-1 rounded border border-border">
+          Session: {currentSession.sessionId.substring(0, 8)}...
         </span>
       </div>
-      <div className="terminal-wrapper">
+      <div className="h-[600px] bg-black sm:h-[400px]">
         <iframe
           src={terminalUrl}
           className="terminal-iframe"
           title="Terminal"
         />
       </div>
-      <div className="terminal-footer">
+      <div className="bg-muted px-8 py-4 flex justify-center items-center gap-4 border-t border-border">
         <a
           href={terminalUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="external-link"
+          className="inline-flex items-center gap-2 text-muted-foreground no-underline text-sm px-4 py-2 rounded-lg border border-border bg-background transition-all duration-200 hover:bg-accent hover:text-accent-foreground"
         >
           <ExternalLinkIcon />
           Open in new window
         </a>
+        <button
+          onClick={async () => {
+            console.log('🧪 Testing proxy functionality...')
+            try {
+              const testUrl = `/test/proxy/${currentSession.sessionId}`
+              console.log('🧪 Fetching:', testUrl)
+              
+              const response = await fetch(testUrl, {
+                credentials: 'include'
+              })
+              
+              // Enhanced response logging before parsing
+              console.log('🧪 Response details:')
+              console.log('  - Status:', response.status, response.statusText)
+              console.log('  - URL:', response.url)
+              console.log('  - Redirected:', response.redirected)
+              console.log('  - Headers:')
+              for (const [key, value] of response.headers.entries()) {
+                console.log(`    ${key}: ${value}`)
+              }
+              
+              // Get raw response text first
+              const responseText = await response.text()
+              console.log('🧪 Raw response text (first 500 chars):')
+              console.log(responseText.substring(0, 500))
+              
+              // Check if response looks like JSON
+              const contentType = response.headers.get('content-type') || ''
+              const isJsonContent = contentType.includes('application/json')
+              const looksLikeJson = responseText.trim().startsWith('{') || responseText.trim().startsWith('[')
+              
+              console.log('🧪 Content analysis:')
+              console.log('  - Content-Type:', contentType)
+              console.log('  - Looks like JSON:', looksLikeJson)
+              console.log('  - Status OK:', response.ok)
+              
+              if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}\nResponse: ${responseText.substring(0, 200)}`)
+              }
+              
+              if (!looksLikeJson) {
+                throw new Error(`Response is not JSON (Content-Type: ${contentType})\nResponse: ${responseText.substring(0, 200)}`)
+              }
+              
+              // Try parsing JSON
+              let testResults
+              try {
+                testResults = JSON.parse(responseText)
+                console.log('🧪 Parsed JSON successfully:', testResults)
+              } catch (parseError) {
+                throw new Error(`JSON parsing failed: ${parseError.message}\nResponse: ${responseText.substring(0, 200)}`)
+              }
+              
+              const status = testResults.overall || 'ERROR'
+              const message = testResults.recommendation || 'Check console for details'
+              alert(`Proxy Test: ${status}\n\n${message}`)
+              
+            } catch (error) {
+              console.error('🧪 Proxy test failed:', error)
+              alert(`Proxy test failed: ${error.message}\n\nCheck console for full details`)
+            }
+          }}
+          className="inline-flex items-center gap-2 text-muted-foreground text-sm px-4 py-2 rounded-lg border border-border bg-background transition-all duration-200 hover:bg-accent hover:text-accent-foreground"
+        >
+          🧪 Test Proxy
+        </button>
       </div>
     </div>
   )

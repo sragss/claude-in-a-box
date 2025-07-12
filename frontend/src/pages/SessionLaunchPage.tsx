@@ -101,24 +101,24 @@ const SessionLaunchPage = () => {
   }
 
   return (
-    <div className="page-container">
-      <Card className="page-card">
-        <div className="page-header">
-          <h1>Development Environment</h1>
-          <p className="page-subtitle">Repository: {getRepoDisplayName()}</p>
-          <div className="step-indicator">Step 3 of 3</div>
+    <div className="space-y-8">
+      <Card className="p-8">
+        <div className="text-center mb-8">
+          <h1 className="text-2xl font-semibold mb-2 text-foreground">Development Environment</h1>
+          <p className="text-muted-foreground text-sm mb-6">Repository: {getRepoDisplayName()}</p>
+          <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded inline-block">Step 3 of 3</div>
         </div>
 
-        <div className="page-content">
+        <div className="space-y-6">
           {currentSession && (
-            <div className="session-info">
-              <p><strong>Session ID:</strong> {currentSession.sessionId.substring(0, 8)}...</p>
+            <div className="text-center p-4 bg-muted border border-border rounded-lg">
+              <p className="text-sm"><strong>Session ID:</strong> <code className="font-mono bg-background px-1 py-0.5 rounded text-xs">{currentSession.sessionId.substring(0, 8)}...</code></p>
             </div>
           )}
 
           {status && <StatusMessage message={status.message} type={status.type} />}
 
-          <div className="page-actions">
+          <div className="flex gap-3 justify-center flex-wrap">
             {!currentSession ? (
               <>
                 <Button

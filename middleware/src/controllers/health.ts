@@ -12,5 +12,6 @@ export const healthCheck = (req: Request, res: Response): void => {
 };
 
 export const redirectToFrontend = (req: Request, res: Response): void => {
-  res.redirect('http://localhost:5173');
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  res.redirect(frontendUrl);
 };

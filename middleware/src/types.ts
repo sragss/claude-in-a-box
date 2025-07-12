@@ -20,6 +20,7 @@ export interface DevSession {
   startupDirectory: string;
   devPort: number | null;
   wettyPort: number | null;
+  wettyHostPort: number | null; // Host port for HTTP access to wetty
   createdAt?: Date;
   lastAccessed?: Date;
   // GitHub user data

@@ -68,3 +68,7 @@ just rebuild
 - ✅ **Web Terminal**: Browser-based development environment
 - ✅ **SSH Access**: Direct terminal access via SSH
 - ✅ **Just Commands**: Simple orchestration with justfile
+
+## TODO
+
+- [ ] **Combine wetty & dev container images**: Currently uses separate containers for dev environment and web terminal. Combining them would reduce complexity, eliminate SSH overhead between containers, and simplify networking architecture.

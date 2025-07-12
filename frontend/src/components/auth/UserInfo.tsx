@@ -15,7 +15,7 @@ const UserInfo = () => {
   }
 
   return (
-    <div className="user-info">
+    <div className="flex items-center justify-center gap-4 mt-4 px-4 py-3 bg-muted border border-border rounded-lg text-sm text-foreground">
       <span>Welcome, {user.name || user.email || 'User'}!</span>
       <Button variant="logout" onClick={handleSignOut}>
         Logout
