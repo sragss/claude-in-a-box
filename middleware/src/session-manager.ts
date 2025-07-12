@@ -1,7 +1,7 @@
-import type { Session, SessionStats } from './types';
+import type { DevSession, SessionStats } from './types';
 
 export class SessionManager {
-  private sessions: Map<string, Session>;
+  private sessions: Map<string, DevSession>;
   private sessionTimeouts: Map<string, NodeJS.Timeout>;
   private readonly SESSION_TIMEOUT: number;
 
@@ -11,7 +11,7 @@ export class SessionManager {
     this.SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
   }
 
-  addSession(sessionId: string, session: Session): void {
+  addSession(sessionId: string, session: DevSession): void {
     this.sessions.set(sessionId, {
       ...session,
       createdAt: new Date(),
@@ -24,7 +24,7 @@ export class SessionManager {
     console.log(`📝 Session ${sessionId} added to manager`);
   }
 
-  getSession(sessionId: string): Session | undefined {
+  getSession(sessionId: string): DevSession | undefined {
     const session = this.sessions.get(sessionId);
     
     if (session) {
@@ -51,7 +51,7 @@ export class SessionManager {
     console.log(`🗑️  Session ${sessionId} removed from manager`);
   }
 
-  getAllSessions(): Session[] {
+  getAllSessions(): DevSession[] {
     return Array.from(this.sessions.values());
   }
 
