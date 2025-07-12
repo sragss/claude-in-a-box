@@ -1,4 +1,4 @@
-import { useAuth } from '../../hooks/useAuth'
+import { useAuth } from '../../contexts/AuthProvider'
 import Button from '../ui/Button'
 
 const UserInfo = () => {

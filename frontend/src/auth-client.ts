@@ -1,8 +1,5 @@
-import { createAuthClient } from "better-auth/react";
+import { createAuthClient } from "better-auth/client";
 
 export const authClient = createAuthClient({
-  baseURL: "http://localhost:8080", // Your backend URL
-  fetchOptions: {
-    credentials: "include", // Include cookies
-  },
+  baseURL: "http://localhost:8080"
 });

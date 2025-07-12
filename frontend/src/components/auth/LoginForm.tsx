@@ -1,5 +1,4 @@
-import { useState } from 'react'
-import { useAuth } from '../../hooks/useAuth'
+import { useAuth } from '../../contexts/AuthProvider'
 import { useStatus } from '../../hooks/useStatus'
 import Button from '../ui/Button'
 import Input from '../ui/Input'
@@ -19,20 +18,16 @@ const GitHubIcon = () => (
 
 const LoginForm = ({ onGithubRepoChange, githubRepo }: LoginFormProps) => {
   const { signIn } = useAuth()
-  const { status, showStatus, clearStatus } = useStatus()
-  const [isLoading, setIsLoading] = useState(false)
+  const { status, showStatus } = useStatus()
 
   const handleSignIn = async () => {
+    console.log('Button clicked - starting sign in process')
     try {
-      setIsLoading(true)
-      clearStatus()
       showStatus('Redirecting to GitHub...', 'info')
-      await signIn()
+      await signIn('github')
     } catch (error) {
       console.error('GitHub login error:', error)
       showStatus('Failed to sign in with GitHub', 'error')
-    } finally {
-      setIsLoading(false)
     }
   }
 
@@ -51,7 +46,6 @@ const LoginForm = ({ onGithubRepoChange, githubRepo }: LoginFormProps) => {
           <Button
             variant="github"
             onClick={handleSignIn}
-            disabled={isLoading}
           >
             <GitHubIcon />
             Sign in with GitHub

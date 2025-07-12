@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { AuthProvider, useAuth } from './hooks/useAuth'
+import { AuthProvider, useAuth } from './contexts/AuthProvider'
 import Layout from './components/layout/Layout'
 import Header from './components/layout/Header'
 import LoginForm from './components/auth/LoginForm'
@@ -7,10 +7,10 @@ import SessionControls from './components/session/SessionControls'
 import TerminalView from './components/session/TerminalView'
 
 const AppContent = () => {
-  const { user, isLoading } = useAuth()
+  const { user, isAuthLoading } = useAuth()
   const [githubRepo, setGithubRepo] = useState('')
 
-  if (isLoading) {
+  if (isAuthLoading) {
     return (
       <Layout>
         <Header />

@@ -1,5 +1,4 @@
-import { useAuth } from '../../hooks/useAuth'
-import { useSession } from '../../hooks/useSession'
+import { useAuth } from '../../contexts/AuthProvider'
 import { useStatus } from '../../hooks/useStatus'
 import type { PostSpinupCommand } from '../../types'
 import Button from '../ui/Button'
@@ -11,8 +10,7 @@ interface SessionControlsProps {
 }
 
 const SessionControls = ({ githubRepo }: SessionControlsProps) => {
-  const { user } = useAuth()
-  const { currentSession, isCreating, isDestroying, createSession, destroySession } = useSession()
+  const { user, currentSession, isCreating, isDestroying, createSession, destroySession } = useAuth()
   const { status, showStatus, clearStatus } = useStatus()
 
   const validateGithubRepo = (repo: string) => {

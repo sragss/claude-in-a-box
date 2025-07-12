@@ -1,4 +1,4 @@
-import { useSession } from '../../hooks/useSession'
+import { useSession } from '../../contexts/AuthProvider'
 
 const ExternalLinkIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -11,7 +11,12 @@ const ExternalLinkIcon = () => (
 const TerminalView = () => {
   const { currentSession } = useSession()
 
-  if (!currentSession) return null
+  console.log('TerminalView currentSession:', currentSession)
+
+  if (!currentSession) {
+    console.log('No current session, hiding terminal')
+    return null
+  }
 
   const terminalUrl = `http://localhost:${currentSession.wettyPort}/wetty`
 
