@@ -1,4 +1,4 @@
-# Claude in a Box Mark 2
+# Claude in a Box
 
 ![Claude in a Box](claude-box-big.png)
 
