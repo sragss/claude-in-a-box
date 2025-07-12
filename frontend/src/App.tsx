@@ -1,14 +1,13 @@
-import { useState } from 'react'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthProvider'
 import Layout from './components/layout/Layout'
 import Header from './components/layout/Header'
-import LoginForm from './components/auth/LoginForm'
-import SessionControls from './components/session/SessionControls'
-import TerminalView from './components/session/TerminalView'
+import LoginPage from './pages/LoginPage'
+import RepoSelectionPage from './pages/RepoSelectionPage'
+import SessionLaunchPage from './pages/SessionLaunchPage'
 
 const AppContent = () => {
-  const { user, isAuthLoading } = useAuth()
-  const [githubRepo, setGithubRepo] = useState('')
+  const { isAuthLoading } = useAuth()
 
   if (isAuthLoading) {
     return (
@@ -24,27 +23,22 @@ const AppContent = () => {
   return (
     <Layout>
       <Header />
-      
-      {!user ? (
-        <LoginForm 
-          githubRepo={githubRepo}
-          onGithubRepoChange={setGithubRepo}
-        />
-      ) : (
-        <>
-          <SessionControls githubRepo={githubRepo} />
-          <TerminalView />
-        </>
-      )}
+      <Routes>
+        <Route path="/" element={<LoginPage />} />
+        <Route path="/setup" element={<RepoSelectionPage />} />
+        <Route path="/launch" element={<SessionLaunchPage />} />
+      </Routes>
     </Layout>
   )
 }
 
 const App = () => {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <BrowserRouter>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </BrowserRouter>
   )
 }
 

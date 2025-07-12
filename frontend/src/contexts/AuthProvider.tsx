@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { authClient } from '../auth-client'
 import type { PostSpinupCommand, SessionResponse } from '../types'
 
@@ -48,6 +49,10 @@ interface AuthContextType {
   isCreating: boolean
   isDestroying: boolean
   
+  // Repo state
+  selectedRepo: string
+  setSelectedRepo: (repo: string) => void
+  
   // Auth methods
   signIn: (provider: string) => Promise<any>
   signOut: () => Promise<void>
@@ -65,6 +70,9 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
+  const navigate = useNavigate()
+  const location = useLocation()
+  
   const [authSession, setAuthSession] = useState<AuthSession | null>(null)
   const [isAuthLoading, setIsAuthLoading] = useState(true)
   
@@ -73,6 +81,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     isCreating: false,
     isDestroying: false
   })
+
+  // Repo state
+  const [selectedRepo, setSelectedRepo] = useState('')
 
   // Auth methods
   const checkAuthSession = useCallback(async () => {
@@ -122,6 +133,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       // Clear any stored session data
       localStorage.removeItem('currentSessionId')
       
+      // Reset repo state and navigate to login
+      setSelectedRepo('')
+      navigate('/')
+      
       console.log('Successfully signed out')
     } catch (error) {
       console.error('Sign out error:', error)
@@ -132,7 +147,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         isCreating: false,
         isDestroying: false
       })
+      setSelectedRepo('')
       localStorage.removeItem('currentSessionId')
+      navigate('/')
     }
   }, [devSession.currentSession])
 
@@ -252,6 +269,24 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   }, [checkAuthSession])
 
+  // Auto-navigate based on auth state
+  useEffect(() => {
+    if (!isAuthLoading) {
+      if (authSession?.data?.user) {
+        // User is authenticated
+        if (location.pathname === '/') {
+          // Auto-advance to repo selection after login
+          navigate('/setup')
+        }
+      } else {
+        // User is not authenticated, redirect to login
+        if (location.pathname !== '/') {
+          navigate('/')
+        }
+      }
+    }
+  }, [authSession?.data?.user, isAuthLoading, location.pathname, navigate])
+
   // Check for existing dev session when auth state changes
   useEffect(() => {
     if (authSession?.data?.user && !devSession.currentSession) {
@@ -269,6 +304,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     currentSession: devSession.currentSession,
     isCreating: devSession.isCreating,
     isDestroying: devSession.isDestroying,
+    
+    // Repo state
+    selectedRepo,
+    setSelectedRepo,
     
     // Methods
     signIn,
