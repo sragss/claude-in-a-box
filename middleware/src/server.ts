@@ -531,6 +531,8 @@ server.listen(PORT, () => {
 const gracefulShutdown = async (): Promise<void> => {
   console.log('🛑 Shutting down middleware server...');
   await containerService.cleanupAll();
+  // Also clear all tracked ports as safety measure
+  containerService.clearAllocatedPorts();
   process.exit(0);
 };
 

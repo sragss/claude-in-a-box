@@ -24,31 +24,30 @@ export class DockerContainerService implements ContainerService {
   // Port allocation mutex to prevent race conditions
   private portAllocationQueue: Promise<void> = Promise.resolve();
 
-  // Check if a port is actually available on the system
-  private async isPortAvailable(port: number): Promise<boolean> {
+  // Get all ports currently in use by Docker containers (single API call)
+  private async getAllUsedPorts(): Promise<Set<number>> {
     try {
-      // Check if any Docker containers are using this port
       const containers = await this.docker.listContainers();
+      const usedPorts = new Set<number>();
+      
       for (const container of containers) {
         if (container.Ports) {
           for (const portBinding of container.Ports) {
-            if (portBinding.PublicPort === port) {
-              console.log(`Port ${port} in use by container ${container.Names?.[0]}`);
-              return false;
+            if (portBinding.PublicPort) {
+              usedPorts.add(portBinding.PublicPort);
             }
           }
         }
       }
       
-      // Port appears to be free
-      return true;
+      return usedPorts;
     } catch (error) {
-      console.error(`Error checking port ${port} availability:`, error);
-      return false; // Assume port is not available if we can't check
+      console.error('Error getting used ports from Docker:', error);
+      return new Set(); // Return empty set on error (conservative approach)
     }
   }
 
-  // Allocate next available wetty host port (checks real Docker state)
+  // Smart port allocation - get all used ports once, then find optimal free port
   private async allocateWettyHostPort(): Promise<number> {
     // Use mutex to prevent race conditions during concurrent allocation
     return new Promise((resolve, reject) => {
@@ -65,44 +64,42 @@ export class DockerContainerService implements ContainerService {
 
   // Internal port allocation logic (called within mutex)
   private async allocateWettyHostPortInternal(): Promise<number> {
-    // Get ports from existing sessions
+    console.log('🔍 Finding available port...');
+    
+    // Get all actually used ports from Docker (single API call)
+    const dockerUsedPorts = await this.getAllUsedPorts();
+    
+    // Get ports from our session tracking
     const sessionPorts = new Set(
       Array.from(this.sessions.values())
         .map(session => session.wettyHostPort)
         .filter(port => port !== null)
     );
     
-    // Combine with currently allocated ports
-    const trackedUsedPorts = new Set([...sessionPorts, ...this.allocatedPorts]);
+    // Combine all used ports
+    const allUsedPorts = new Set([...dockerUsedPorts, ...sessionPorts, ...this.allocatedPorts]);
     
-    let port = this.wettyPortStart;
-    let attempts = 0;
-    const maxAttempts = 100; // Prevent infinite loop
+    console.log(`📊 Found ${allUsedPorts.size} ports in use, searching for free port...`);
     
-    while (attempts < maxAttempts) {
-      // Skip if we think it's in use
-      if (trackedUsedPorts.has(port)) {
-        port++;
-        attempts++;
-        continue;
-      }
-      
-      // Check if port is actually available in Docker
-      const isAvailable = await this.isPortAvailable(port);
-      if (isAvailable) {
-        // Reserve this port immediately
+    // Strategy 1: Fill gaps in our range first (reuse low ports)
+    for (let port = this.wettyPortStart; port < this.wettyPortStart + 200; port++) {
+      if (!allUsedPorts.has(port)) {
         this.allocatedPorts.add(port);
-        console.log(`✅ Allocated port ${port} for wetty container`);
+        console.log(`✅ Allocated port ${port} (gap fill)`);
         return port;
       }
-      
-      // Port is in use, try next one
-      console.log(`Port ${port} is in use, trying next port`);
-      port++;
-      attempts++;
     }
     
-    throw new Error(`Could not find available port after ${maxAttempts} attempts starting from ${this.wettyPortStart}`);
+    // Strategy 2: If no gaps, extend beyond our range
+    for (let port = this.wettyPortStart + 200; port < this.wettyPortStart + 1000; port++) {
+      if (!allUsedPorts.has(port)) {
+        this.allocatedPorts.add(port);
+        console.log(`✅ Allocated port ${port} (range extension)`);
+        return port;
+      }
+    }
+    
+    throw new Error(`Could not find available port in range ${this.wettyPortStart} - ${this.wettyPortStart + 1000}`);
   }
 
   // Release port when session is destroyed
@@ -126,6 +123,111 @@ export class DockerContainerService implements ContainerService {
   // Get current allocated ports (for debugging)
   getAllocatedPorts(): number[] {
     return Array.from(this.allocatedPorts);
+  }
+
+  // Clean up zombie containers and sync port tracking
+  async cleanupZombieContainers(): Promise<void> {
+    try {
+      console.log('🧹 Scanning for zombie containers...');
+      
+      // Get all running containers
+      const containers = await this.docker.listContainers();
+      const ourContainers = containers.filter(container => 
+        container.Names?.some(name => name.includes('claude-dev-') || name.includes('claude-wetty-'))
+      );
+      
+      // Extract session IDs from container names
+      const runningSessionIds = new Set<string>();
+      for (const container of ourContainers) {
+        const name = container.Names?.[0]?.replace('/', '') || '';
+        const sessionMatch = name.match(/claude-(?:dev|wetty)-(.+)/);
+        if (sessionMatch) {
+          runningSessionIds.add(sessionMatch[1]);
+        }
+      }
+      
+      // Find containers for sessions we're no longer tracking
+      const trackedSessionIds = new Set(this.sessions.keys());
+      const zombieSessionIds = Array.from(runningSessionIds).filter(
+        sessionId => !trackedSessionIds.has(sessionId)
+      );
+      
+      if (zombieSessionIds.length > 0) {
+        console.log(`🧟 Found ${zombieSessionIds.length} zombie sessions: ${zombieSessionIds.slice(0, 3).join(', ')}${zombieSessionIds.length > 3 ? '...' : ''}`);
+        
+        // Clean up zombie containers
+        for (const sessionId of zombieSessionIds) {
+          try {
+            console.log(`🗑️ Cleaning up zombie session: ${sessionId}`);
+            await this.cleanupZombieSession(sessionId);
+          } catch (error) {
+            console.warn(`Failed to cleanup zombie session ${sessionId}:`, error);
+          }
+        }
+        
+        // Sync port tracking with actual Docker state
+        await this.syncPortTracking();
+      } else {
+        console.log('✅ No zombie containers found');
+      }
+    } catch (error) {
+      console.error('Error during zombie cleanup:', error);
+    }
+  }
+
+  // Clean up a specific zombie session
+  private async cleanupZombieSession(sessionId: string): Promise<void> {
+    const containerNames = [`claude-dev-${sessionId}`, `claude-wetty-${sessionId}`];
+    
+    for (const containerName of containerNames) {
+      try {
+        const container = this.docker.getContainer(containerName);
+        await container.stop({ t: 10 });
+        await container.remove();
+        console.log(`  ✅ Removed container: ${containerName}`);
+      } catch (error: any) {
+        if (error.statusCode !== 404) {
+          console.warn(`  ⚠️ Failed to remove container ${containerName}:`, error.message);
+        }
+      }
+    }
+    
+    // Clean up network
+    try {
+      const network = this.docker.getNetwork(`claude-${sessionId}`);
+      await network.remove();
+      console.log(`  ✅ Removed network: claude-${sessionId}`);
+    } catch (error: any) {
+      if (error.statusCode !== 404) {
+        console.warn(`  ⚠️ Failed to remove network claude-${sessionId}:`, error.message);
+      }
+    }
+  }
+
+  // Sync our port tracking with actual Docker state
+  private async syncPortTracking(): Promise<void> {
+    console.log('🔄 Syncing port tracking with Docker state...');
+    
+    const dockerUsedPorts = await this.getAllUsedPorts();
+    const sessionPorts = new Set(
+      Array.from(this.sessions.values())
+        .map(session => session.wettyHostPort)
+        .filter(port => port !== null)
+    );
+    
+    // Our tracked ports should only include ports that are actually in use
+    const validTrackedPorts = Array.from(this.allocatedPorts).filter(port => 
+      dockerUsedPorts.has(port) || sessionPorts.has(port)
+    );
+    
+    const removedCount = this.allocatedPorts.size - validTrackedPorts.length;
+    this.allocatedPorts = new Set(validTrackedPorts);
+    
+    if (removedCount > 0) {
+      console.log(`🧹 Freed ${removedCount} orphaned port entries`);
+    }
+    
+    console.log(`📊 Port tracking synced: ${this.allocatedPorts.size} ports tracked, ${dockerUsedPorts.size} Docker ports in use`);
   }
 
   constructor(baseUrl: string = 'http://localhost:8080') {

@@ -119,12 +119,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const signOut = useCallback(async () => {
     try {
-      // First destroy any active dev sessions
+      // Start session destruction in background if there's an active session
       if (devSession.currentSession) {
-        await destroySession()
+        // Don't await - let it happen in background
+        destroySession().catch(error => {
+          console.error('Background session cleanup failed:', error)
+        })
       }
       
-      // Then sign out from auth
+      // Immediately proceed with auth logout
       await authClient.signOut()
       
       // Clear auth state
@@ -137,7 +140,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setSelectedRepo('')
       navigate('/')
       
-      console.log('Successfully signed out')
+      console.log('Successfully signed out (session cleanup in progress)')
     } catch (error) {
       console.error('Sign out error:', error)
       // Even if there's an error, clear local state

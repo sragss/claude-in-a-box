@@ -107,6 +107,24 @@ clean: stop
     @rm -rf ./ssh-keys 2>/dev/null || true
     @rm -f ./wetty/wetty_key 2>/dev/null || true
 
+# Clean up ALL session containers and data (nuclear option)
+clean-all: stop
+    @echo "🧹 Nuclear cleanup - removing ALL session containers and data..."
+    @echo "🛑 Stopping all claude containers..."
+    @docker ps -q --filter "name=claude-" | xargs -r docker stop
+    @echo "🗑️  Removing all claude containers..."
+    @docker ps -aq --filter "name=claude-" | xargs -r docker rm
+    @echo "🌐 Removing all claude networks..."
+    @docker network ls -q --filter "name=claude-" | xargs -r docker network rm
+    @echo "📁 Removing session directories..."
+    @rm -rf ./middleware/sessions/* 2>/dev/null || true
+    @echo "🔑 Removing SSH keys..."
+    @rm -rf ./ssh-keys 2>/dev/null || true
+    @rm -f ./wetty/wetty_key 2>/dev/null || true
+    @echo "🧹 Clearing allocated ports (restart middleware to apply)..."
+    @curl -s "http://localhost:8080/debug/clear-ports" >/dev/null 2>&1 || echo "   (middleware not running - ports will clear on restart)"
+    @echo "✅ Nuclear cleanup complete!"
+
 # Rebuild containers
 rebuild: clean
     @echo "🔄 Rebuilding containers..."
