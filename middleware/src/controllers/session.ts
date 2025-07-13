@@ -40,23 +40,12 @@ export const createSession = async (
       userEmail: user.email
     });
     
-    // Create and store session info in SessionManager (legacy for compatibility)
-    const sessionInfo = {
-      sessionId,
-      userId: user.id,
-      username: user.name,
-      userEmail: user.email,
-      network: `claude-${sessionId}`,
-      devContainer: `claude-dev-${sessionId}`,
-      wettyContainer: `claude-wetty-${sessionId}`,
-      devPort: 22,
-      wettyPort: 3001,
-      sshKeysPath: '',
-      postSpinupCommands: enhancedCommands,
-      startupDirectory: '/home/node'
-    };
-    
-    sessionManager.addSession(sessionId, sessionInfo);
+    // Get the full session data from containerService to ensure we have all required fields
+    const fullSessionData = containerService.getSession(sessionId);
+    if (fullSessionData) {
+      // Store session info in SessionManager (for proxy authentication)
+      sessionManager.addSession(sessionId, fullSessionData);
+    }
     
     console.log(`✅ Session ${sessionId} created successfully`);
     
