@@ -1,4 +1,9 @@
 import { useSession } from '../../contexts/AuthProvider'
+import { useEffect, useRef } from 'react'
+import { Terminal } from 'xterm'
+import { FitAddon } from '@xterm/addon-fit'
+import { io, Socket } from 'socket.io-client'
+import 'xterm/css/xterm.css'
 
 const ExternalLinkIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -10,8 +15,99 @@ const ExternalLinkIcon = () => (
 
 const TerminalView = () => {
   const { currentSession } = useSession()
+  const terminalRef = useRef<HTMLDivElement>(null)
+  const terminal = useRef<Terminal | null>(null)
+  const socket = useRef<Socket | null>(null)
+  const fitAddon = useRef<FitAddon | null>(null)
 
-  console.log('TerminalView currentSession:', currentSession)
+  useEffect(() => {
+    if (!currentSession || !terminalRef.current) return
+
+    console.log('🖥️ TERMINAL INIT:', currentSession.sessionId)
+    
+    // Create terminal instance
+    terminal.current = new Terminal({
+      cursorBlink: true,
+      theme: {
+        background: '#000000',
+        foreground: '#ffffff'
+      },
+      fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+      fontSize: 14
+    })
+
+    // Create fit addon for responsive sizing
+    fitAddon.current = new FitAddon()
+    terminal.current.loadAddon(fitAddon.current)
+
+    // Open terminal in DOM
+    terminal.current.open(terminalRef.current)
+    fitAddon.current.fit()
+
+    // Socket.IO connection to wetty
+    const socketPath = `/proxy/terminal/${currentSession.sessionId}/socket.io`
+    console.log('🔌 SOCKET.IO CONNECTING:', socketPath)
+    
+    socket.current = io('/', {
+      path: socketPath,
+      transports: ['polling', 'websocket'],
+      upgrade: true,
+      withCredentials: true,
+      forceNew: true,
+      timeout: 15000,
+      autoConnect: true
+    })
+
+    // Handle Socket.IO connection events
+    socket.current.on('connect', () => {
+      console.log('✅ SOCKET.IO CONNECTED')
+      
+      // Bridge Socket.IO and xterm.js
+      socket.current!.on('data', (data: string) => {
+        terminal.current!.write(data)
+      })
+      
+      terminal.current!.onData((data: string) => {
+        socket.current!.emit('input', data)
+      })
+      
+      terminal.current!.focus()
+    })
+
+    socket.current.on('connect_error', (error) => {
+      console.error('❌ SOCKET.IO ERROR:', error.message)
+    })
+    
+    socket.current.on('disconnect', (reason) => {
+      console.log('❌ SOCKET.IO DISCONNECTED:', reason)
+    })
+
+    // Handle window resize
+    const handleResize = () => {
+      if (fitAddon.current) {
+        fitAddon.current.fit()
+      }
+    }
+    window.addEventListener('resize', handleResize)
+
+    // Cleanup function
+    return () => {
+      console.log('🧹 TERMINAL CLEANUP')
+      window.removeEventListener('resize', handleResize)
+      
+      if (socket.current) {
+        socket.current.disconnect()
+        socket.current = null
+      }
+      
+      if (terminal.current) {
+        terminal.current.dispose()
+        terminal.current = null
+      }
+      
+      fitAddon.current = null
+    }
+  }, [currentSession?.sessionId])
 
   if (!currentSession) {
     console.log('No current session, hiding terminal')
@@ -28,11 +124,11 @@ const TerminalView = () => {
           Session: {currentSession.sessionId.substring(0, 8)}...
         </span>
       </div>
-      <div className="h-[600px] bg-black sm:h-[400px]">
-        <iframe
-          src={terminalUrl}
-          className="terminal-iframe"
-          title="Terminal"
+      <div className="h-[600px] bg-black sm:h-[400px] p-2">
+        <div 
+          ref={terminalRef}
+          className="w-full h-full"
+          style={{ minHeight: '100%' }}
         />
       </div>
       <div className="bg-muted px-8 py-4 flex justify-center items-center gap-4 border-t border-border">

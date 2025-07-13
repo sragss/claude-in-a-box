@@ -70,5 +70,6 @@ just rebuild
 - ✅ **Just Commands**: Simple orchestration with justfile
 
 ## TODO
-
+- [x] **xterm.js direct**: Don't iframe the wetty xterm directly, instead xterm and proxy the connections through the middleware to the wetty docker image.
+- [ ] **Client Context Handling**: Make session management and login management less shit.
 - [ ] **Combine wetty & dev container images**: Currently uses separate containers for dev environment and web terminal. Combining them would reduce complexity, eliminate SSH overhead between containers, and simplify networking architecture.

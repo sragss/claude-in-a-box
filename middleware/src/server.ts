@@ -31,6 +31,11 @@ app.all("/api/auth/*", toNodeHandler(auth));
 // Add express.json middleware AFTER Better Auth handler
 app.use(express.json());
 
+// Request logging (errors only)
+app.use((req, res, next) => {
+  next();
+});
+
 // Authentication middleware using Better Auth's built-in session verification
 const requireAuth = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   console.log(`🔐 Auth check for: ${req.method} ${req.path}`);
@@ -386,11 +391,7 @@ const isAuthenticated = async (req: any): Promise<{ user: any; sessionId: string
 // Single terminal proxy using pathFilter pattern
 const terminalProxy = createProxyMiddleware({
   pathFilter: (pathname, req) => {
-    // Only proxy actual terminal session requests, not asset requests
-    const isTerminalSession = pathname.startsWith('/proxy/terminal/') && 
-                               pathname.endsWith('/wetty');
-    console.log(`🔍 Terminal proxy pathFilter: ${pathname} -> ${isTerminalSession}`);
-    return isTerminalSession;
+    return pathname.startsWith('/proxy/terminal/');
   },
   router: async (req) => {
     try {
@@ -417,8 +418,6 @@ const terminalProxy = createProxyMiddleware({
       }
       
       const targetUrl = `http://localhost:${sessionData.wettyHostPort}`;
-      console.log(`✅ Terminal proxy routing to: ${targetUrl} for session ${sessionId}`);
-      console.log(`✅ Original request path: ${req.url}`);
       return targetUrl;
     } catch (error) {
       console.error('Terminal proxy router error:', error);
@@ -427,8 +426,15 @@ const terminalProxy = createProxyMiddleware({
   },
   changeOrigin: true,
   pathRewrite: (path, req) => {
-    const newPath = path.replace(/^\/proxy\/terminal\/[^\/]+\/wetty/, '/wetty');
-    console.log(`🔄 Path rewrite: ${path} → ${newPath}`);
+    // Handle both wetty HTTP requests and Socket.IO WebSocket requests
+    let newPath;
+    if (path.includes('/socket.io/')) {
+      // Socket.IO requests: /proxy/terminal/{sessionId}/socket.io/... → /wetty/socket.io/...
+      newPath = path.replace(/^\/proxy\/terminal\/[^\/]+\/socket\.io/, '/wetty/socket.io');
+    } else {
+      // HTTP requests: /proxy/terminal/{sessionId}/wetty → /wetty
+      newPath = path.replace(/^\/proxy\/terminal\/[^\/]+\/wetty/, '/wetty');
+    }
     return newPath;
   },
   logLevel: 'info'
@@ -470,48 +476,47 @@ const devProxy = createProxyMiddleware({
   logLevel: 'info'
 });
 
-// Static wetty assets proxy (for CSS, JS, etc.)
-const wettyAssetsProxy = createProxyMiddleware({
-  pathFilter: (pathname, req) => {
-    // Handle only specific wetty asset paths
-    const isAssetRequest = pathname.startsWith('/wetty/assets/') || 
-                          pathname.startsWith('/wetty/client/');
-    console.log(`🎨 Wetty assets pathFilter: ${pathname} -> ${isAssetRequest}`);
-    return isAssetRequest;
-  },
-  router: async (req) => {
-    // For asset requests, route to any active wetty container
-    // All wetty containers serve the same static assets
-    try {
-      const allocatedPorts = containerService.getAllocatedPorts();
-      if (allocatedPorts.length === 0) {
-        throw new Error('No active sessions for asset requests');
-      }
-      
-      // Use the first available port - all wetty containers have same assets
-      const targetPort = allocatedPorts[0];
-      const targetUrl = `http://localhost:${targetPort}`;
-      console.log(`🎨 Routing asset request to wetty container: ${targetUrl}`);
-      return targetUrl;
-    } catch (error) {
-      console.error('Asset proxy router error:', error);
-      return 'http://localhost:1'; // Invalid target to trigger error
-    }
-  },
-  changeOrigin: true,
-  logLevel: 'info'
-});
-
 // Add proxies to app (order matters - most specific first)
 app.use(terminalProxy);
-app.use(wettyAssetsProxy);
 app.use(devProxy);
 
 // Create HTTP server
 const server = createServer(app);
 
 // Standard server upgrade subscription for WebSocket support
-server.on('upgrade', terminalProxy.upgrade);
+server.on('upgrade', async (req, socket, head) => {
+  if (req.url && req.url.startsWith('/proxy/terminal/') && req.url.includes('/socket.io/')) {
+    try {
+      const sessionId = extractSessionId(req.url);
+      if (!sessionId) {
+        socket.destroy();
+        return;
+      }
+
+      const authSession = await auth.api.getSession({ 
+        headers: new Headers(Object.entries(req.headers).map(([key, value]) => [key, Array.isArray(value) ? value[0] : value || '']))
+      });
+      
+      if (!authSession) {
+        socket.destroy();
+        return;
+      }
+
+      const session = sessionManager.getSession(sessionId);
+      if (!session || session.userId !== authSession.user.id) {
+        socket.destroy();
+        return;
+      }
+
+      terminalProxy.upgrade(req, socket, head);
+    } catch (error) {
+      console.error('WebSocket upgrade error:', error);
+      socket.destroy();
+    }
+  } else {
+    socket.destroy();
+  }
+});
 
 // Start server
 server.listen(PORT, () => {

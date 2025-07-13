@@ -20,6 +20,9 @@ export class DockerContainerService implements ContainerService {
 
   // Track allocated ports to prevent race conditions
   private allocatedPorts = new Set<number>();
+  
+  // Port allocation mutex to prevent race conditions
+  private portAllocationQueue: Promise<void> = Promise.resolve();
 
   // Check if a port is actually available on the system
   private async isPortAvailable(port: number): Promise<boolean> {
@@ -47,6 +50,21 @@ export class DockerContainerService implements ContainerService {
 
   // Allocate next available wetty host port (checks real Docker state)
   private async allocateWettyHostPort(): Promise<number> {
+    // Use mutex to prevent race conditions during concurrent allocation
+    return new Promise((resolve, reject) => {
+      this.portAllocationQueue = this.portAllocationQueue.then(async () => {
+        try {
+          const port = await this.allocateWettyHostPortInternal();
+          resolve(port);
+        } catch (error) {
+          reject(error);
+        }
+      });
+    });
+  }
+
+  // Internal port allocation logic (called within mutex)
+  private async allocateWettyHostPortInternal(): Promise<number> {
     // Get ports from existing sessions
     const sessionPorts = new Set(
       Array.from(this.sessions.values())

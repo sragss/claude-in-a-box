@@ -13,12 +13,17 @@ export default defineConfig({
         changeOrigin: true,
         secure: false
       },
-      // WebSocket proxy routes
+      // WebSocket proxy routes  
       '/proxy': {
         target: 'http://localhost:8080',
         changeOrigin: true,
         secure: false,
-        ws: true // Enable WebSocket proxying
+        ws: true, // Enable WebSocket proxying
+        configure: (proxy, options) => {
+          proxy.on('error', (err, req, res) => {
+            console.log('Vite proxy error:', err);
+          });
+        }
       },
       // Test routes
       '/test': {
