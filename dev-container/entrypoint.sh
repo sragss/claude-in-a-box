@@ -84,6 +84,25 @@ if [ "$POST_SPINUP_COMMANDS_ENABLED" = "true" ] && [ -f "/ssh-keys/post-spinup-c
                     }
                     
                     console.log(\`✅ GitHub user \${cmd.username} configured\`);
+                } else if (cmd.type === 'write_env_file') {
+                    console.log(\`📝 Writing environment variables to .env file\`);
+                    
+                    // Create .env file content
+                    const envContent = Object.entries(cmd.envVars || {})
+                        .map(([key, value]) => \`\${key}="\${value}"\`)
+                        .join('\\n') + '\\n';
+                    
+                    // Write .env file as node user
+                    const fs = require('fs');
+                    const envPath = '/home/node/.env';
+                    
+                    // Write file as root first, then change ownership and permissions
+                    fs.writeFileSync(envPath, envContent);
+                    execSync(\`chown node:node \${envPath}\`, { stdio: 'inherit' });
+                    execSync(\`chmod 600 \${envPath}\`, { stdio: 'inherit' });
+                    
+                    console.log(\`✅ Environment variables written to \${envPath}\`);
+                    console.log(\`   Variables: \${Object.keys(cmd.envVars || {}).join(', ')}\`);
                 }
             }
             

@@ -32,6 +32,17 @@ export const createSession = async (
       },
       ...postSpinupCommands
     ];
+
+    // Add LLM API key to environment if available
+    const llmApiKey = process.env.LLM_API_KEY;
+    if (llmApiKey) {
+      enhancedCommands.push({
+        type: 'write_env_file',
+        envVars: {
+          'LLM_API_KEY': llmApiKey
+        }
+      });
+    }
     
     const endpoints = await containerService.createSession(sessionId, { 
       postSpinupCommands: enhancedCommands,

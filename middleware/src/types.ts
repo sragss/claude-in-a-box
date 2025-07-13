@@ -1,5 +1,5 @@
 export interface PostSpinupCommand {
-  type: 'git_clone' | 'shell_command' | 'setup_github_user';
+  type: 'git_clone' | 'shell_command' | 'setup_github_user' | 'write_env_file';
   repo?: string;
   directory?: string;
   command?: string;
@@ -8,6 +8,8 @@ export interface PostSpinupCommand {
   // GitHub user setup
   username?: string;
   email?: string;
+  // Environment variables
+  envVars?: Record<string, string>;
 }
 
 export interface DevSession {

@@ -191,7 +191,8 @@ const TerminalView = () => {
                 testResults = JSON.parse(responseText)
                 console.log('🧪 Parsed JSON successfully:', testResults)
               } catch (parseError) {
-                throw new Error(`JSON parsing failed: ${parseError.message}\nResponse: ${responseText.substring(0, 200)}`)
+                const errorMessage = parseError instanceof Error ? parseError.message : String(parseError)
+                throw new Error(`JSON parsing failed: ${errorMessage}\nResponse: ${responseText.substring(0, 200)}`)
               }
               
               const status = testResults.overall || 'ERROR'
@@ -200,7 +201,8 @@ const TerminalView = () => {
               
             } catch (error) {
               console.error('🧪 Proxy test failed:', error)
-              alert(`Proxy test failed: ${error.message}\n\nCheck console for full details`)
+              const errorMessage = error instanceof Error ? error.message : String(error)
+              alert(`Proxy test failed: ${errorMessage}\n\nCheck console for full details`)
             }
           }}
           className="inline-flex items-center gap-2 text-muted-foreground text-sm px-4 py-2 rounded-lg border border-border bg-background transition-all duration-200 hover:bg-accent hover:text-accent-foreground"
